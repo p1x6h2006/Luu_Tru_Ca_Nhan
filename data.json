@@ -1,0 +1,182 @@
+{
+  "profile": {
+    "name": "Hiếu PC",
+    "tagline": "Kho lưu trữ cá nhân",
+    "bio": "Lập trình viên Android. Nơi mình gom tệp, hình ảnh, bài đã học và video để không phải giữ trong máy.",
+    "links": [
+      {
+        "name": "GitHub",
+        "url": "https://github.com/p1x6h2006"
+      }
+    ]
+  },
+  "items": [
+    {
+      "id": "demo-f1",
+      "tags": [
+        "mã nguồn"
+      ],
+      "note": "",
+      "date": "2026-10-13",
+      "type": "file",
+      "title": "Mã nguồn trang GIÁM SÁT XE",
+      "url": "https://github.com/p1x6h2006/Giam_sat_xe"
+    },
+    {
+      "id": "src-dothi",
+      "tags": [
+        "web"
+      ],
+      "note": "",
+      "date": "2026-10-13",
+      "type": "file",
+      "title": "ĐỒ THỊ",
+      "url": "https://p1x6h2006.github.io/Dothi/"
+    },
+    {
+      "id": "src-giamsatxe",
+      "tags": [
+        "web"
+      ],
+      "note": "",
+      "date": "2026-10-13",
+      "type": "file",
+      "title": "GIÁM SÁT XE",
+      "url": "https://p1x6h2006.github.io/Giam_sat_xe/"
+    },
+    {
+      "id": "demo-l1",
+      "tags": [
+        "Android"
+      ],
+      "note": "Ví dụ. Ghi chú những gì đã nắm được.",
+      "date": "2026-10-13",
+      "type": "learn",
+      "title": "Lập trình Android với Kotlin",
+      "status": "doing",
+      "progress": 60,
+      "url": ""
+    },
+    {
+      "id": "demo-l2",
+      "tags": [
+        "công cụ"
+      ],
+      "note": "Ví dụ. Đẩy mã lên kho, bật GitHub Pages.",
+      "date": "2026-10-13",
+      "type": "learn",
+      "title": "Git và GitHub",
+      "status": "done",
+      "progress": 100,
+      "url": ""
+    },
+    {
+      "id": "demo-l3",
+      "tags": [
+        "dự định"
+      ],
+      "note": "Ví dụ cho mục dự định.",
+      "date": "2026-10-13",
+      "type": "learn",
+      "title": "Học thêm một chủ đề mới",
+      "status": "plan",
+      "progress": 0,
+      "url": ""
+    },
+    {
+      "id": "imv6jsm8m726g",
+      "tags": [],
+      "note": "Nhạc Trung Remix",
+      "date": "2026-10-13",
+      "type": "video",
+      "title": "Lý Nhân Sầu - Remix",
+      "url": "https://www.youtube.com/watch?v=tjQGjYlUYQM&list=RDtjQGjYlUYQM&start_radio=1"
+    },
+    {
+      "id": "imv6jygow9vyx",
+      "tags": [],
+      "note": "Remix nhạc trẻ",
+      "date": "2026-10-13",
+      "type": "video",
+      "title": "Nightcore - Sơn Thủy Trùng Mây x Thủy Chung x Yến Vô Hiết (Vietz x Wi. Remix)",
+      "url": "https://www.youtube.com/watch?v=yDFFcVJaGwc&list=RDivrgt5PyVk0&index=3&pp=8AUB"
+    },
+    {
+      "id": "imv6k5dv6jytk",
+      "tags": [
+        "mã nguồn"
+      ],
+      "note": "",
+      "date": "2026-10-13",
+      "type": "file",
+      "title": "Mã nguồn trang ĐỒ THỊ",
+      "url": "https://github.com/p1x6h2006/Dothi"
+    },
+    {
+      "id": "imv6ketpq052y",
+      "type": "file",
+      "title": "Thiên Cơ Các",
+      "url": "https://xkiro.com/dashboard/chat",
+      "note": "20 đại năng, 5M linh thạch",
+      "date": "2026-10-13",
+      "tags": [
+        "Link"
+      ]
+    },
+    {
+      "id": "imv6khuevjyc9",
+      "type": "file",
+      "title": "Kho công pháp",
+      "url": "https://www.w3schools.com/",
+      "note": "tất cả các ngôn ngữ lập trình, đến các chức năng đều có thể học ở đây,...",
+      "date": "2026-10-13",
+      "tags": [
+        "Link"
+      ]
+    },
+    {
+      "id": "imv6klfm0bevn",
+      "type": "file",
+      "title": "vvv",
+      "url": "https://www.shodan.io/host/45.117.168.245",
+      "note": "",
+      "date": "2026-10-13",
+      "tags": [
+        "Link"
+      ]
+    },
+    {
+      "id": "imv6koemf41ft",
+      "type": "file",
+      "title": "Haveibeenpwned",
+      "url": "https://haveibeenpwned.com/",
+      "note": "Trang kiểm tra (check) xem Email, gmail,...\ncó bị lộ thông tin không",
+      "date": "2026-10-13",
+      "tags": [
+        "Link"
+      ]
+    },
+    {
+      "id": "imv6kp8o2jcp4",
+      "type": "file",
+      "title": "vvvvv",
+      "url": "https://www.spamhaus.org/reputation-statistics/countries/exploit/",
+      "note": "",
+      "date": "2026-10-13",
+      "tags": [
+        "Link"
+      ]
+    },
+    {
+      "id": "imv6kt61og3fc",
+      "type": "file",
+      "title": "Thehackernews",
+      "url": "https://thehackernews.com/",
+      "note": "Trang cập nhật các thông tin về Hacker",
+      "date": "2026-10-13",
+      "tags": [
+        "Link"
+      ]
+    }
+  ]
+}
