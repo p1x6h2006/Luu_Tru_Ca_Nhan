@@ -1,0 +1,206 @@
+{
+  "profile": {
+    "name": "Hiếu PC",
+    "tagline": "Kho lưu trữ cá nhân",
+    "bio": "Lập trình viên Android. Nơi mình gom tệp, hình ảnh, bài đã học và video để không phải giữ trong máy.",
+    "links": [
+      {
+        "name": "GitHub",
+        "url": "https://github.com/p1x6h2006"
+      }
+    ]
+  },
+  "items": [
+    {
+      "id": "demo-f1",
+      "tags": [
+        "mã nguồn"
+      ],
+      "note": "",
+      "date": "2026-10-13",
+      "type": "file",
+      "title": "Mã nguồn trang GIÁM SÁT XE",
+      "url": "https://github.com/p1x6h2006/Giam_sat_xe"
+    },
+    {
+      "id": "src-dothi",
+      "tags": [
+        "web"
+      ],
+      "note": "",
+      "date": "2026-10-13",
+      "type": "file",
+      "title": "ĐỒ THỊ",
+      "url": "https://p1x6h2006.github.io/Dothi/"
+    },
+    {
+      "id": "src-giamsatxe",
+      "tags": [
+        "web"
+      ],
+      "note": "",
+      "date": "2026-10-13",
+      "type": "file",
+      "title": "GIÁM SÁT XE",
+      "url": "https://p1x6h2006.github.io/Giam_sat_xe/"
+    },
+    {
+      "id": "demo-l1",
+      "tags": [
+        "Android"
+      ],
+      "note": "Ví dụ. Ghi chú những gì đã nắm được.",
+      "date": "2026-10-13",
+      "type": "learn",
+      "title": "Lập trình Android với Kotlin",
+      "status": "doing",
+      "progress": 60,
+      "url": ""
+    },
+    {
+      "id": "demo-l2",
+      "tags": [
+        "công cụ"
+      ],
+      "note": "Ví dụ. Đẩy mã lên kho, bật GitHub Pages.",
+      "date": "2026-10-13",
+      "type": "learn",
+      "title": "Git và GitHub",
+      "status": "done",
+      "progress": 100,
+      "url": ""
+    },
+    {
+      "id": "demo-l3",
+      "tags": [
+        "dự định"
+      ],
+      "note": "Ví dụ cho mục dự định.",
+      "date": "2026-10-13",
+      "type": "learn",
+      "title": "Học thêm một chủ đề mới",
+      "status": "plan",
+      "progress": 0,
+      "url": ""
+    },
+    {
+      "id": "imv6jsm8m726g",
+      "tags": [],
+      "note": "Nhạc Trung Remix",
+      "date": "2026-10-13",
+      "type": "video",
+      "title": "Lý Nhân Sầu - Remix",
+      "url": "https://www.youtube.com/watch?v=tjQGjYlUYQM&list=RDtjQGjYlUYQM&start_radio=1"
+    },
+    {
+      "id": "imv6jygow9vyx",
+      "tags": [],
+      "note": "Remix nhạc trẻ",
+      "date": "2026-10-13",
+      "type": "video",
+      "title": "Nightcore - Sơn Thủy Trùng Mây x Thủy Chung x Yến Vô Hiết (Vietz x Wi. Remix)",
+      "url": "https://www.youtube.com/watch?v=yDFFcVJaGwc&list=RDivrgt5PyVk0&index=3&pp=8AUB"
+    },
+    {
+      "id": "imv6k5dv6jytk",
+      "tags": [
+        "mã nguồn"
+      ],
+      "note": "",
+      "date": "2026-10-13",
+      "type": "file",
+      "title": "Mã nguồn trang ĐỒ THỊ",
+      "url": "https://github.com/p1x6h2006/Dothi"
+    },
+    {
+      "id": "imv6ketpq052y",
+      "tags": [
+        "Link"
+      ],
+      "note": "20 đại năng, 5M linh thạch",
+      "date": "2026-10-13",
+      "type": "file",
+      "title": "Thiên Cơ Các",
+      "url": "https://xkiro.com/dashboard/chat"
+    },
+    {
+      "id": "imv6khuevjyc9",
+      "tags": [
+        "Link"
+      ],
+      "note": "tất cả các ngôn ngữ lập trình, đến các chức năng đều có thể học ở đây,...",
+      "date": "2026-10-13",
+      "type": "file",
+      "title": "Kho công pháp",
+      "url": "https://www.w3schools.com/"
+    },
+    {
+      "id": "imv6klfm0bevn",
+      "tags": [
+        "Link"
+      ],
+      "note": "",
+      "date": "2026-10-13",
+      "type": "file",
+      "title": "vvv",
+      "url": "https://www.shodan.io/host/45.117.168.245"
+    },
+    {
+      "id": "imv6koemf41ft",
+      "tags": [
+        "Link"
+      ],
+      "note": "Trang kiểm tra (check) xem Email, gmail,...\ncó bị lộ thông tin không",
+      "date": "2026-10-13",
+      "type": "file",
+      "title": "Haveibeenpwned",
+      "url": "https://haveibeenpwned.com/"
+    },
+    {
+      "id": "imv6kp8o2jcp4",
+      "tags": [
+        "Link"
+      ],
+      "note": "",
+      "date": "2026-10-13",
+      "type": "file",
+      "title": "vvvvv",
+      "url": "https://www.spamhaus.org/reputation-statistics/countries/exploit/"
+    },
+    {
+      "id": "imv6kt61og3fc",
+      "tags": [
+        "Link"
+      ],
+      "note": "Trang cập nhật các thông tin về Hacker",
+      "date": "2026-10-13",
+      "type": "file",
+      "title": "Thehackernews",
+      "url": "https://thehackernews.com/"
+    },
+    {
+      "id": "imv6m8d91jmoa",
+      "tags": [
+        "lưu ý"
+      ],
+      "note": "",
+      "date": "2026-10-13",
+      "type": "file",
+      "kind": "note",
+      "title": "hhh",
+      "enc": {
+        "iv": "SqkMLMG9hU7yop1j",
+        "ct": "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"
+      }
+    }
+  ],
+  "vault": {
+    "v": 1,
+    "salt": "nhLWlhZOiI3EFg2jaKJvwA==",
+    "iter": 600000,
+    "check": {
+      "iv": "Sa/hfFv5xhigEOgE",
+      "ct": "Mv/b3SRNWi+Si6ipxHtArW6sFFFr6SgHDNDK8lJx"
+    }
+  }
+}
