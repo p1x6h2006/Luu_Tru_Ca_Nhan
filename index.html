@@ -175,6 +175,9 @@ a{color:inherit}
 .seg button:hover{background:rgba(34,211,238,.12)}
 .seg button .n{opacity:.7;margin-left:5px;font-variant-numeric:tabular-nums}
 .seg button .ic{vertical-align:-2px;margin-right:5px}
+.field input[type=file]{padding:8px}
+.prevrow{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.prevrow img{width:72px;height:72px;object-fit:cover;border-radius:8px;border:1px solid var(--rule)}
 .branch{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
 .panel.secure{border-color:rgba(251,113,133,.32)}
 .secbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;background:rgba(251,113,133,.08);border:1px dashed rgba(251,113,133,.55);border-radius:12px;padding:10px 12px;margin-bottom:14px}
@@ -254,9 +257,9 @@ footer{padding:0 0 36px;color:var(--muted);font-size:14px}
       <div class="plinks" id="plinks"></div>
     </div>
     <aside class="meter" aria-label="Dung lượng">
-      <div class="head">Không tốn bộ nhớ máy</div>
+      <div class="head">Dung lượng dữ liệu</div>
       <b id="kb">0 KB</b>
-      <p>Đây là toàn bộ dữ liệu của trang. Tệp, ảnh và video nằm ở Google Drive, GitHub hay YouTube, trang này chỉ giữ liên kết.</p>
+      <p>Đây là toàn bộ dữ liệu của trang. Tệp và video nằm ở Google Drive, GitHub hay YouTube, trang chỉ giữ liên kết. Ảnh tải lên được thu nhỏ rồi lưu cùng dữ liệu.</p>
     </aside>
   </header>
 </div>
@@ -288,7 +291,7 @@ footer{padding:0 0 36px;color:var(--muted);font-size:14px}
 <dialog id="dlg"><div class="dh"><h2 id="dlgTitle"></h2><button class="btn sm" id="dlgX" type="button" aria-label="Đóng">Đóng</button></div><div class="db"><form id="form"></form></div></dialog>
 <dialog id="lbx" class="wide"><div class="dh"><h2 id="lbTitle"></h2><button class="btn sm" id="lbX" type="button">Đóng</button></div>
   <div class="db"><img class="lbimg" id="lbImg" alt=""><p id="lbNote" style="color:var(--muted);margin:10px 0 0"></p>
-  <div class="lbnav"><button class="btn" id="lbPrev" type="button">Ảnh trước</button><a class="btn" id="lbOpen" target="_blank" rel="noopener noreferrer">Mở ảnh gốc</a><button class="btn" id="lbNext" type="button">Ảnh sau</button></div></div></dialog>
+  <div class="lbnav"><button class="btn" id="lbPrev" type="button">Ảnh trước</button><a class="btn" id="lbOpen" target="_blank" rel="noopener noreferrer">Mở ảnh</a><button class="btn" id="lbNext" type="button">Ảnh sau</button></div></div></dialog>
 <dialog id="vdx" class="wide"><div class="dh"><h2 id="vdTitle"></h2><button class="btn sm" id="vdX" type="button">Đóng</button></div><div class="db" id="vdBody"></div></dialog>
 <dialog id="ntx" class="wide"><div class="dh"><h2 id="ntTitle"></h2><button class="btn sm" id="ntX" type="button">Đóng</button></div>
   <div class="db"><pre class="notetxt" id="ntBody"></pre>
@@ -314,12 +317,16 @@ footer{padding:0 0 36px;color:var(--muted);font-size:14px}
     <li>Bấm vào tên ghi chú để đọc, sao chép hoặc tải về dạng .txt. Ghi chú, hướng dẫn và liên kết tự khóa ngay khi bạn xem xong; chế độ Chỉnh sửa khóa ngay khi bấm Xong chỉnh sửa (hoặc sau 1 phút không thao tác). Nút Cách lưu trữ và các nút liên kết ở đầu trang (như GitHub) cũng cần mật khẩu; địa chỉ của các liên kết này được mã hóa.</li>
     <li>Quên mật khẩu thì không có cách nào lấy lại nội dung ghi chú, hãy nhớ kỹ hoặc cất ở nơi an toàn.</li></ul>
     <h3>Hình ảnh</h3>
-    <ul><li>Đưa ảnh vào thư mục <code>images/</code> trong kho GitHub, rồi dán <code>images/anh-1.jpg</code>.</li>
-    <li>Hoặc dán link ảnh từ Google Drive (chia sẻ công khai bằng link). Trang tự đổi sang link xem ảnh.</li></ul>
+    <ul><li>Bật <b>Chỉnh sửa</b>, bấm <b>Thêm hình ảnh</b> rồi chọn ảnh từ máy, hoặc chụp ảnh mới bằng điện thoại. Có thể chọn nhiều ảnh cùng lúc.</li>
+    <li>Ảnh được thu nhỏ (cạnh dài tối đa 2560 px) và nén trước khi lưu, mỗi ảnh thường chỉ vài trăm KB. Ảnh nằm trong trình duyệt, và được đưa vào <code>data.json</code> khi bạn bấm Xuất.</li>
+    <li>Ảnh càng nhiều thì <code>data.json</code> càng lớn. Tải lên GitHub bằng trình duyệt chỉ nhận tệp tối đa 25 MB, khoảng vài chục đến một trăm ảnh.</li>
+    <li>Ảnh trong nhánh Bảo mật được mã hóa cùng dữ liệu, không ai xem được nếu không có mật khẩu, và không bị lộ qua đường dẫn.</li></ul>
     <h3>Video</h3>
     <ul><li>YouTube: tải lên ở chế độ "Không công khai" rồi dán link, video sẽ phát ngay trong trang.</li>
     <li>Google Drive: dán link chia sẻ, trang sẽ phát bản xem trước.</li>
-    <li>Tệp .mp4 nhỏ trong kho GitHub cũng phát được.</li></ul>
+    <li>Tệp .mp4 nhỏ trong kho GitHub cũng phát được.</li>
+    <li>Hoặc bấm <b>Tải video lên</b> khi thêm video, chọn tệp từ máy. Video lưu ngay trong trình duyệt này (tối đa 4 GB; nhánh Bảo mật được mã hóa, cũng tối đa 4 GB; tùy dung lượng trống của trình duyệt) và <b>không</b> nằm trong data.json, nên không hiện trên thiết bị khác. Xóa dữ liệu trình duyệt sẽ mất video; muốn xem ở mọi nơi hãy dùng link YouTube hoặc Drive.</li>
+    <li>Để video bảo mật lớn phát mượt và tua được mà không tốn RAM, hãy tải thêm tệp <code>sw.js</code> lên kho GitHub, cùng thư mục với <code>index.html</code>. Không có tệp này video vẫn phát nhưng phải giải mã cả video vào bộ nhớ.</li></ul>
     <h3>Lưu thay đổi cho mọi thiết bị</h3>
     <ul><li>Bật <b>Chỉnh sửa</b>, thêm hay sửa mục. Thay đổi lúc này mới nằm trên trình duyệt của bạn.</li>
     <li>Bấm <b>Xuất data.json</b>, rồi trong kho GitHub chọn Add file, Upload files và tải <code>data.json</code> lên, ghi đè bản cũ. Mọi thiết bị sẽ thấy dữ liệu mới sau ít phút.</li></ul>
@@ -327,7 +334,7 @@ footer{padding:0 0 36px;color:var(--muted);font-size:14px}
     <ul><li>Mỗi mục (Tệp, Hình ảnh, Học tập, Video) có hai nhánh: <b>Công khai</b> và <b>Bảo mật</b>. Bấm Bảo mật rồi nhập mật khẩu để xem.</li>
     <li>Muốn thêm mục bảo mật: bật Chỉnh sửa, chuyển sang nhánh Bảo mật rồi bấm nút Thêm (riêng mục Tệp còn có Thêm ghi chú txt, cả tên lẫn nội dung đều được mã hóa). Tên, link, ghi chú, thẻ và ngày đều được mã hóa AES-256; trong data.json chỉ còn chuỗi mã hóa.</li>
     <li>Nhánh Bảo mật tự khóa sau 5 phút không thao tác, hoặc bấm Khóa ngay. Dùng chung mật khẩu với ghi chú; đổi mật khẩu sẽ mã hóa lại tất cả.</li>
-    <li>Chỉ liên kết được ẩn: nếu tệp, ảnh hay video nằm công khai trong kho GitHub, ai biết đúng đường dẫn vẫn mở được. Nên dùng link Google Drive hoặc YouTube không công khai.</li></ul>
+    <li>Với tệp và video, chỉ liên kết được ẩn: nếu chúng nằm công khai trong kho GitHub, ai biết đúng đường dẫn vẫn mở được. Nên dùng link Google Drive hoặc YouTube không công khai.</li></ul>
     <h3>Lưu ý riêng tư</h3>
     <p>Trang GitHub Pages là công khai: ai có link đều xem được. Chỉ <b>nội dung ghi chú txt</b> được mã hóa; tên ghi chú, thẻ, link tệp, ảnh và video ở nhánh Công khai thì không (hãy đưa thông tin nhạy cảm vào nhánh Bảo mật). Đừng đặt tên ghi chú chứa thông tin nhạy cảm, và đừng đưa giấy tờ cá nhân vào các mục khác.</p>
   </div></dialog>
@@ -342,9 +349,9 @@ const TODAY = new Date().toISOString().slice(0, 10);
 
 const TABS = {
   files:  { type:'file',  label:'Tệp',       add:'Thêm tệp',       empty:'Chưa có tệp nào',       hint:'Dán link tệp từ Google Drive, GitHub hoặc nơi khác, hoặc tạo ghi chú dạng txt.' },
-  images: { type:'image', label:'Hình ảnh',  add:'Thêm hình ảnh',  empty:'Chưa có hình ảnh nào',  hint:'Dán đường dẫn ảnh trong kho GitHub hoặc link ảnh từ Google Drive.' },
+  images: { type:'image', label:'Hình ảnh',  add:'Thêm hình ảnh',  empty:'Chưa có hình ảnh nào',  hint:'Bật Chỉnh sửa rồi bấm Thêm hình ảnh để tải ảnh lên từ máy hoặc chụp bằng điện thoại.' },
   learn:  { type:'learn', label:'Học tập',   add:'Thêm bài học',   empty:'Chưa có bài học nào',   hint:'Ghi lại môn, khóa học hay chủ đề bạn đã và đang học.' },
-  videos: { type:'video', label:'Video',     add:'Thêm video',     empty:'Chưa có video nào',     hint:'Dán link YouTube, Google Drive hoặc tệp .mp4.' }
+  videos: { type:'video', label:'Video',     add:'Thêm video',     empty:'Chưa có video nào',     hint:'Dán link YouTube, Google Drive hoặc tải video từ máy lên.' }
 };
 
 const DEFAULT = {
@@ -368,6 +375,10 @@ const DEFAULT = {
 let state = null, source = 'default';
 let tab = 'files', q = '', tag = '', stat = 'all', edit = false, lbList = [], lbIdx = 0;
 let branch = 'pub';            // 'pub' = công khai, 'sec' = bảo mật
+const imgRaw = new Map();      // imgId -> {t,d} (công khai) hoặc {t,iv,ct} (đã mã hóa)
+const imgUrl = new Map();      // imgId -> blob URL đang dùng để hiển thị
+let imgDirty = false, syncChain = Promise.resolve();
+const MAXSIDE = 2560;
 const secCache = new Map();    // id -> nội dung đã giải mã (chỉ nằm trong bộ nhớ, xóa khi khóa)
 
 /* ---------- Tiện ích ---------- */
@@ -383,6 +394,7 @@ const uid = () => 'i' + Date.now().toString(36) + Math.random().toString(36).sli
 function toast(t){ const el = $('#toast'); el.textContent = t; el.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('show'), 2400); }
 const ytId = u => { const m = String(u).match(/(?:youtu\.be\/|[?&]v=|shorts\/|embed\/)([\w-]{11})/); return m ? m[1] : ''; };
 const driveId = u => { if (!/drive\.google\.com/.test(u)) return ''; const m = String(u).match(/\/d\/([\w-]+)/) || String(u).match(/[?&]id=([\w-]+)/); return m ? m[1] : ''; };
+const srcOf = i => i.imgId ? (imgUrl.get(i.imgId) || '') : imgSrc(i.url);
 const imgSrc = u => { u = safeUrl(u); const d = driveId(u); return d ? 'https://drive.google.com/thumbnail?id=' + d + '&sz=w1600' : u; };
 
 function fileKind(it){
@@ -420,10 +432,112 @@ async function load(){
     try { const r = await fetch('data.json', { cache:'no-store' }); if (r.ok){ state = normalize(await r.json()); source = 'file'; } } catch (e) {}
   }
   if (!state){ state = normalize(JSON.parse(JSON.stringify(DEFAULT))); source = 'default'; }
+  ingestImages();
+  if (source === 'local'){ try { (await idbLoadAll()).forEach((v, k) => { if (!imgRaw.has(k)) imgRaw.set(k, v); }); buildPublicUrls(); } catch (e) {} }
+}
+function ingestImages(){
+  if (state.images && typeof state.images === 'object'){
+    Object.entries(state.images).forEach(([k, v]) => { if (v && (v.d || v.ct)) imgRaw.set(k, v); });
+    if (imgRaw.size) imgDirty = true;
+  }
+  delete state.images; buildPublicUrls();
+}
+function resetImgs(){ imgUrl.forEach(u => URL.revokeObjectURL(u)); imgUrl.clear(); imgRaw.clear(); }
+function buildPublicUrls(){
+  imgRaw.forEach((r, id) => { if (r.d && !imgUrl.has(id)){ try { imgUrl.set(id, URL.createObjectURL(new Blob([unb64(r.d)], { type:r.t || 'image/jpeg' }))); } catch (e) {} } });
+}
+function dropImg(id){ if (!id) return; if (imgUrl.has(id)) URL.revokeObjectURL(imgUrl.get(id)); imgUrl.delete(id); imgRaw.delete(id); imgDirty = true; }
+function pruneImgs(){
+  const used = new Set(state.items.map(i => i.imgId || i.img).filter(Boolean));
+  [...imgRaw.keys()].forEach(k => { if (!used.has(k)){ if (imgUrl.has(k)) URL.revokeObjectURL(imgUrl.get(k)); imgUrl.delete(k); imgRaw.delete(k); } });
+}
+/* Kho ảnh trong IndexedDB (localStorage quá nhỏ để chứa ảnh) */
+function idbOpen(){ return new Promise((res, rej) => { if (!window.indexedDB) return rej(new Error('noidb')); const r = indexedDB.open('kho-ca-nhan-img', 1); r.onupgradeneeded = () => r.result.createObjectStore('imgs'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); }
+async function idbLoadAll(){
+  const db = await idbOpen();
+  return new Promise((res, rej) => { const out = new Map(), rq = db.transaction('imgs').objectStore('imgs').openCursor(); rq.onsuccess = () => { const c = rq.result; if (c){ out.set(c.key, c.value); c.continue(); } else res(out); }; rq.onerror = () => rej(rq.error); });
+}
+function syncImgs(){
+  syncChain = syncChain.then(async () => {
+    pruneImgs(); const db = await idbOpen();
+    await new Promise((res, rej) => { const tx = db.transaction('imgs', 'readwrite'), st = tx.objectStore('imgs'); st.clear(); imgRaw.forEach((v, k) => st.put(v, k)); tx.oncomplete = res; tx.onerror = tx.onabort = () => rej(tx.error); });
+  }).catch(() => toast('Không lưu được ảnh trong trình duyệt này. Hãy bấm Xuất data.json để giữ lại.'));
+}
+/* ---------- Kho video tải lên: lưu trong IndexedDB riêng của trình duyệt, không nằm trong data.json ---------- */
+const MAXVID = 4096 * 1048576, MAXVIDSEC = 4096 * 1048576, VCHUNK = 8 * 1048576;
+let swReg = null;
+async function swReady(){
+  if (!('serviceWorker' in navigator)) return false;
+  try {
+    swReg = swReg || await navigator.serviceWorker.register('sw.js', { scope:'./' });
+    await Promise.race([navigator.serviceWorker.ready, new Promise((_, rej) => setTimeout(rej, 4000))]);
+    if (!navigator.serviceWorker.controller) await new Promise(res => { const t = setTimeout(res, 3000); navigator.serviceWorker.addEventListener('controllerchange', () => { clearTimeout(t); res(); }, { once:true }); });
+    return !!navigator.serviceWorker.controller;
+  } catch (e) { return false; }
+}
+function swSend(msg){
+  const w = 'serviceWorker' in navigator && (navigator.serviceWorker.controller || (swReg && swReg.active)); if (!w) return false;
+  try { w.postMessage(msg); return true; } catch (e) { return false; }
+}
+if ('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', e => { if (e.data && e.data.type === 'need-key' && vaultKey) swSend({ type:'key', key:vaultKey }); });
+async function vidFree(){ try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); const e = await navigator.storage.estimate(); return e && e.quota ? Math.max(0, e.quota - (e.usage || 0)) : Infinity; } catch (e) { return Infinity; } }
+let vidBlobUrl = '';
+function vdbOpen(){ return new Promise((res, rej) => { if (!window.indexedDB) return rej(new Error('noidb')); const r = indexedDB.open('kho-ca-nhan-vid', 1); r.onupgradeneeded = () => r.result.createObjectStore('vids'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); }
+async function vidPut(id, rec){ const db = await vdbOpen(); return new Promise((res, rej) => { const tx = db.transaction('vids', 'readwrite'); tx.objectStore('vids').put(rec, id); tx.oncomplete = res; tx.onerror = tx.onabort = () => rej(tx.error); }); }
+async function vidGet(id){ const db = await vdbOpen(); return new Promise((res, rej) => { const rq = db.transaction('vids').objectStore('vids').get(id); rq.onsuccess = () => res(rq.result); rq.onerror = () => rej(rq.error); }); }
+async function vidDel(id){ if (!id) return; try { const db = await vdbOpen(); await new Promise(res => { const tx = db.transaction('vids', 'readwrite'); tx.objectStore('vids').delete(IDBKeyRange.bound(id, id + '\uffff')); tx.oncomplete = tx.onerror = tx.onabort = () => res(); }); } catch (e) {} }
+async function vidClear(){ try { const db = await vdbOpen(); await new Promise(res => { const tx = db.transaction('vids', 'readwrite'); tx.objectStore('vids').clear(); tx.oncomplete = tx.onerror = tx.onabort = () => res(); }); } catch (e) {} }
+async function submitVideo(f, fd, it, sec){
+  const mode = fd.get('vmode'), file = f.querySelector('[name=vfile]').files[0], cur = it ? (sec ? (secCache.get(it.id) || {}) : it) : {};
+  let key = null; if (sec){ key = vaultKey || await ensureKey(); if (!key) return; }
+  const v = { title:fd.get('title').trim(), note:fd.get('note').trim(), date:fd.get('date') || TODAY, tags:[...new Set(fd.get('tags').split(',').map(x => x.trim()).filter(Boolean))] };
+  const oldVid = cur.vidId; let newVid = '';
+  if (mode === 'link'){
+    v.url = fd.get('url').trim(); if (!safeUrl(v.url)){ toast('Link không hợp lệ'); return; }
+    if (!v.title) v.title = 'Video';
+  } else if (file){
+    if (!(/^video\//.test(file.type) || /\.(mp4|webm|mov|m4v|ogv|mkv)$/i.test(file.name))){ toast('Tệp này không phải video'); return; }
+    const cap = sec ? MAXVIDSEC : MAXVID;
+    if (file.size > cap){ toast('Video quá lớn, tối đa ' + (cap / 1073741824) + ' GB'); return; }
+    const room = await vidFree();
+    if (sec && file.size > 1073741824 && !(await swReady()) && !confirm('Video lớn hơn 1 GB và chưa dùng được chế độ phát theo luồng (cần tệp sw.js cạnh index.html và mở trang bằng https). Khi phát, trang phải giải mã cả video vào bộ nhớ, máy yếu hoặc điện thoại có thể bị đơ. Vẫn lưu?')) return;
+    if (file.size * 1.05 > room){ toast('Trình duyệt chỉ còn khoảng ' + Math.floor(room / 1048576) + ' MB trống, không đủ cho video này'); return; }
+  } else if (oldVid){ v.vidId = oldVid; if (!v.title) v.title = cur.title || 'Video'; }
+  else { toast('Hãy chọn tệp video'); return; }
+  const btn = f.querySelector('button[type=submit]'), label = btn.textContent;
+  btn.disabled = true; btn.textContent = sec ? 'Đang mã hóa video...' : 'Đang lưu video...';
+  try {
+    if (mode === 'up' && file){
+      newVid = uid(); const type = file.type || 'video/mp4';
+      if (sec){
+        const n = Math.max(1, Math.ceil(file.size / VCHUNK));
+        for (let k = 0; k < n; k++){
+          const iv = crypto.getRandomValues(new Uint8Array(12));
+          const ct = await crypto.subtle.encrypt({ name:'AES-GCM', iv }, key, await file.slice(k * VCHUNK, (k + 1) * VCHUNK).arrayBuffer());
+          await vidPut(newVid + '#' + k, { iv, ct }); btn.textContent = 'Đang mã hóa video... ' + Math.round((k + 1) / n * 100) + '%';
+        }
+        await vidPut(newVid, { t:type, n, cs:VCHUNK, size:file.size });
+      }
+      else await vidPut(newVid, { t:type, blob:file });
+      v.vidId = newVid; if (!v.title) v.title = file.name.replace(/\.[^.]+$/, '');
+    }
+    if (sec){
+      const o = it || { id:uid(), type:'video', sec:true };
+      o.enc = await encText(key, JSON.stringify(v)); if (v.vidId) o.vid = v.vidId; else delete o.vid;
+      secCache.set(o.id, v); if (!it) state.items.push(o);
+    } else {
+      const o = it || { id:uid(), type:'video' }; delete o.url; delete o.vidId; Object.assign(o, v);
+      if (!it) state.items.push(o);
+    }
+  } catch (e) { if (newVid) vidDel(newVid); toast('Không lưu được video, có thể trình duyệt đã hết bộ nhớ'); return; }
+  finally { btn.disabled = false; btn.textContent = label; }
+  if (oldVid && oldVid !== v.vidId) vidDel(oldVid);
+  $('#dlg').close(); save(); toast(sec ? 'Đã lưu video (đã mã hóa)' : 'Đã lưu video');
 }
 function save(){
   try { localStorage.setItem(LS, JSON.stringify(state)); source = 'local'; }
   catch (e) { toast('Không lưu được trên trình duyệt này'); }
+  if (imgDirty){ imgDirty = false; syncImgs(); }
   render();
 }
 
@@ -449,8 +563,9 @@ function render(){
   $('#plinks').innerHTML = (p.links || []).map((l, i) => (l.url || l.enc) ? '<button type="button" class="btn" data-link="' + i + '">' + esc(l.name || 'Liên kết') + '</button>' : '').join('');
   Object.keys(TABS).forEach(k => $('#ct-' + k).textContent = typeOf(TABS[k].type).length);
   document.querySelectorAll('.tab').forEach(b => { b.setAttribute('aria-selected', b.dataset.tab === tab); b.tabIndex = b.dataset.tab === tab ? 0 : -1; });
-  const kb = new Blob([JSON.stringify(state)]).size / 1024;
-  $('#kb').textContent = (kb < 10 ? kb.toFixed(1) : Math.round(kb)) + ' KB';
+  let bytes = new Blob([JSON.stringify(state)]).size; imgRaw.forEach(r => bytes += (r.d || r.ct || '').length);
+  const kb = bytes / 1024;
+  $('#kb').textContent = kb >= 1024 ? (kb / 1024).toFixed(1) + ' MB' : (kb < 10 ? kb.toFixed(1) : Math.round(kb)) + ' KB';
   $('#editBtn').setAttribute('aria-pressed', edit); $('#editBtn').classList.toggle('on', edit);
   $('#editBtn').textContent = edit ? 'Xong chỉnh sửa' : 'Chỉnh sửa';
   $('#foot').innerHTML = '<p>Dữ liệu đang xem: ' + ({ default:'dữ liệu mẫu', file:'data.json trong kho', local:'bản chỉnh sửa trên trình duyệt này' })[source] + '.</p>';
@@ -534,7 +649,7 @@ function cardFile(i){
 }
 function cardImage(i){
   const idx = lbList.indexOf(i);
-  return '<figure class="pic"><button class="imgbtn" data-act="lb" data-i="' + idx + '" aria-label="Xem ảnh ' + esc(i.title) + '"><img loading="lazy" src="' + esc(imgSrc(i.url)) + '" alt="' + esc(i.title) + '"></button>' +
+  return '<figure class="pic"><button class="imgbtn" data-act="lb" data-i="' + idx + '" aria-label="Xem ảnh ' + esc(i.title) + '"><img loading="lazy" src="' + esc(srcOf(i)) + '" alt="' + esc(i.title) + '"></button>' +
     '<figcaption><b>' + esc(i.title) + '</b>' + (i.note ? '<br><span style="color:var(--muted)">' + esc(i.note) + '</span>' : '') + tagsHtml(i) + editBtns(i) + '</figcaption></figure>';
 }
 function cardLearn(i){
@@ -577,8 +692,12 @@ async function setBranch(b){
 async function loadSecure(){
   let bad = 0;
   for (const it of state.items){
-    if (!it.sec || secCache.has(it.id)) continue;
-    try { secCache.set(it.id, JSON.parse(await decText(vaultKey, it.enc))); } catch (e) { bad++; }
+    if (!it.sec) continue;
+    let v = secCache.get(it.id);
+    if (!v){ try { v = JSON.parse(await decText(vaultKey, it.enc)); secCache.set(it.id, v); } catch (e) { bad++; continue; } }
+    if (v.imgId && !imgUrl.has(v.imgId) && imgRaw.has(v.imgId)){
+      try { const r = imgRaw.get(v.imgId); imgUrl.set(v.imgId, URL.createObjectURL(new Blob([await decBytes(vaultKey, r)], { type:r.t || 'image/jpeg' }))); } catch (e) { bad++; }
+    }
   }
   if (bad) toast('Có ' + bad + ' mục không giải mã được');
 }
@@ -600,7 +719,7 @@ $('#panel').addEventListener('change', async e => {
 });
 $('#panel').addEventListener('error', e => {
   if (e.target.tagName !== 'IMG') return;
-  if (e.target.closest('.pic')){ const d = document.createElement('div'); d.className = 'miss'; d.textContent = 'Không tải được ảnh. Kiểm tra lại link hoặc quyền chia sẻ.'; e.target.replaceWith(d); }
+  if (e.target.closest('.pic')){ const d = document.createElement('div'); d.className = 'miss'; d.textContent = 'Không hiển thị được ảnh.'; e.target.replaceWith(d); }
   else e.target.remove();
 }, true);
 $('#panel').addEventListener('click', e => {
@@ -612,7 +731,7 @@ $('#panel').addEventListener('click', e => {
   else if (act === 'edit'){ const it = state.items.find(x => x.id === id); if (it && (it.kind === 'note' || (it.sec && (secCache.get(it.id) || {}).kind === 'note'))) openNote(id); else openForm(TABS[tab].type, id); }
   else if (act === 'addnote') openNote(null, branch === 'sec');
   else if (act === 'note') viewNote(id);
-  else if (act === 'del'){ const it = state.items.find(x => x.id === id), nm = it && (it.sec ? (secCache.get(it.id) || {}).title : it.title); if (it && confirm('Xóa "' + nm + '"?')){ state.items = state.items.filter(x => x.id !== id); secCache.delete(id); save(); toast('Đã xóa'); } }
+  else if (act === 'del'){ const it = state.items.find(x => x.id === id), nm = it && (it.sec ? (secCache.get(it.id) || {}).title : it.title); if (it && confirm('Xóa "' + nm + '"?')){ const iid = it.imgId || it.img, vid = it.vidId || it.vid; state.items = state.items.filter(x => x.id !== id); secCache.delete(id); dropImg(iid); vidDel(vid); save(); toast('Đã xóa'); } }
   else if (act === 'branch') setBranch(b.dataset.v);
   else if (act === 'lock'){ lockNow(); toast('Đã khóa'); }
   else if (act === 'lb') openLightbox(+b.dataset.i);
@@ -621,7 +740,7 @@ $('#panel').addEventListener('click', e => {
   else if (act === 'chpw') changePassword();
   else if (act === 'export') exportData();
   else if (act === 'import') $('#importFile').click();
-  else if (act === 'reset'){ if (confirm('Bỏ mọi chỉnh sửa trên trình duyệt này và quay về dữ liệu gốc?')){ localStorage.removeItem(LS); lockNow(); state = null; load().then(render); toast('Đã về dữ liệu gốc'); } }
+  else if (act === 'reset'){ if (confirm('Bỏ mọi chỉnh sửa trên trình duyệt này và quay về dữ liệu gốc?')){ localStorage.removeItem(LS); lockNow(); resetImgs(); vidClear(); imgDirty = true; state = null; load().then(render); toast('Đã về dữ liệu gốc'); } }
 });
 $('#editBtn').onclick = async () => {
   if (edit){ lockNow(); return; }
@@ -646,10 +765,15 @@ function openForm(t, id, sec){
   sec = it ? !!it.sec : !!sec;
   const d = it ? (sec ? (secCache.get(it.id) || {}) : it) : {};
   const f = $('#form'); $('#dlgTitle').textContent = (it ? 'Sửa mục' : TABS[tab].add) + (sec ? ' (bảo mật)' : '');
-  let h = field('Tên', 'title', d.title, { req:true });
+  let h = field('Tên', 'title', d.title, { req:t !== 'image' && t !== 'video', ph:t === 'image' ? 'Không bắt buộc, mặc định lấy tên tệp ảnh' : (t === 'video' ? 'Không bắt buộc khi tải lên, mặc định lấy tên tệp' : '') });
   if (t === 'file') h += field('Link hoặc đường dẫn', 'url', d.url, { req:true, ph:'https://drive.google.com/... hoặc files/bai-tap.pdf' });
-  if (t === 'image') h += field('Link hoặc đường dẫn ảnh', 'url', d.url, { req:true, ph:'images/anh-1.jpg hoặc link Google Drive', hint:'Ảnh nên để trong thư mục images/ của kho GitHub hoặc Google Drive.' });
-  if (t === 'video') h += field('Link video', 'url', d.url, { req:true, ph:'https://youtu.be/... hoặc link Google Drive hoặc .mp4' });
+  if (t === 'image') h += '<label class="field"><span>' + (it ? 'Đổi ảnh (không bắt buộc)' : 'Chọn ảnh') + '</span><input type="file" name="files" accept="image/*"' + (it ? '' : ' multiple required') + '><small>Chọn từ thư viện hoặc chụp ảnh mới trên điện thoại. Ảnh được thu nhỏ và nén trước khi lưu.</small></label><div class="prevrow" id="imgPrev"></div>';
+  if (t === 'video'){
+    h += '<input type="hidden" name="vmode" value="' + (d.vidId ? 'up' : 'link') + '">';
+    h += '<div class="field"><span>Nguồn video</span><div class="seg" role="group" aria-label="Nguồn video"><button type="button" data-vm="link" aria-pressed="false">Dán link</button><button type="button" data-vm="up" aria-pressed="false">Tải video lên</button></div></div>';
+    h += '<div id="vLink">' + field('Link video', 'url', d.url, { ph:'https://youtu.be/... hoặc link Google Drive hoặc .mp4' }) + '</div>';
+    h += '<div id="vUp"><label class="field"><span>' + (d.vidId ? 'Đổi video (không bắt buộc)' : 'Chọn video') + '</span><input type="file" name="vfile" accept="video/*"><small>Video được lưu trong trình duyệt này (tối đa 4 GB, nhánh Bảo mật cũng tối đa 4 GB, và tùy dung lượng trống của trình duyệt) và không nằm trong data.json, nên không đồng bộ sang thiết bị khác. Muốn xem ở mọi nơi hãy dùng link YouTube hoặc Drive.</small></label></div>';
+  }
   if (t === 'learn'){
     h += field('Trạng thái', 'status', d.status || 'doing', { select:[['doing', 'Đang học'], ['plan', 'Dự định'], ['done', 'Đã xong']] });
     h += field('Tiến độ (0 đến 100)', 'progress', d.progress == null ? 0 : d.progress, { type:'number', attrs:' min="0" max="100" step="5"' });
@@ -659,10 +783,22 @@ function openForm(t, id, sec){
   h += field(t === 'image' ? 'Thẻ hoặc album' : 'Thẻ', 'tags', (d.tags || []).join(', '), { hint:'Cách nhau bằng dấu phẩy, ví dụ: Android, bài giảng' });
   h += field('Ngày', 'date', d.date || TODAY, { type:'date' });
   h += '<div class="drow"><button type="button" class="btn" id="fCancel">Hủy</button><button class="btn pri" type="submit">Lưu</button></div>';
-  if (sec) h = '<p class="pwmsg">Mục này nằm trong nhánh bảo mật: mọi thông tin được mã hóa trước khi lưu. Lưu ý: nếu tệp, ảnh hay video nằm công khai trong kho GitHub thì ai biết đúng đường dẫn vẫn mở được, nên dùng link Google Drive hoặc YouTube không công khai.</p>' + h;
+  if (sec) h = '<p class="pwmsg">' + (t === 'image' ? 'Ảnh này nằm trong nhánh bảo mật: cả ảnh và thông tin đều được mã hóa trước khi lưu.' : 'Mục này nằm trong nhánh bảo mật: mọi thông tin được mã hóa trước khi lưu. Lưu ý: nếu tệp hoặc video nằm công khai trong kho GitHub thì ai biết đúng đường dẫn vẫn mở được, nên dùng link Google Drive hoặc YouTube không công khai.') + '</p>' + h;
   f.innerHTML = h;
+  if (t === 'image'){
+    const inp = f.querySelector('input[type=file]'), pv = f.querySelector('#imgPrev'); let urls = [];
+    const cur = it ? srcOf(d) : ''; if (cur) pv.innerHTML = '<img src="' + esc(cur) + '" alt="">';
+    inp.onchange = () => { urls.forEach(u => URL.revokeObjectURL(u)); urls = [...inp.files].slice(0, 12).map(x => URL.createObjectURL(x)); pv.innerHTML = urls.map(u => '<img src="' + u + '" alt="">').join(''); };
+  }
+  if (t === 'video'){
+    const mi = f.querySelector('[name=vmode]'), bs = f.querySelectorAll('[data-vm]'), li = f.querySelector('[name=url]'), ui = f.querySelector('[name=vfile]');
+    const setM = m => { mi.value = m; bs.forEach(b => b.setAttribute('aria-pressed', b.dataset.vm === m)); f.querySelector('#vLink').classList.toggle('hidden', m !== 'link'); f.querySelector('#vUp').classList.toggle('hidden', m !== 'up'); li.required = m === 'link'; ui.required = m === 'up' && !d.vidId; };
+    bs.forEach(b => b.onclick = () => setM(b.dataset.vm)); setM(mi.value);
+  }
   f.onsubmit = async e => {
     e.preventDefault(); const fd = new FormData(f), v = {};
+    if (t === 'image'){ await submitImage(f, fd, it, sec); return; }
+    if (t === 'video'){ await submitVideo(f, fd, it, sec); return; }
     v.title = fd.get('title').trim();
     if (fd.has('url')) v.url = fd.get('url').trim();
     if (t !== 'learn' && !safeUrl(v.url)){ toast('Link không hợp lệ'); return; }
@@ -685,6 +821,57 @@ function openForm(t, id, sec){
 }
 $('#dlgX').onclick = () => $('#dlg').close();
 
+/* ---------- Tải ảnh lên: thu nhỏ, nén, rồi lưu (mã hóa nếu ở nhánh bảo mật) ---------- */
+async function compressImage(file){
+  let bmp;
+  try { bmp = await createImageBitmap(file, { imageOrientation:'from-image' }); }
+  catch (e) {
+    bmp = await new Promise((res, rej) => { const im = new Image(), u = URL.createObjectURL(file); im.onload = () => { URL.revokeObjectURL(u); res(im); }; im.onerror = () => { URL.revokeObjectURL(u); rej(new Error('decode')); }; im.src = u; });
+  }
+  const sc = Math.min(1, MAXSIDE / Math.max(bmp.width, bmp.height)), c = document.createElement('canvas');
+  c.width = Math.max(1, Math.round(bmp.width * sc)); c.height = Math.max(1, Math.round(bmp.height * sc));
+  const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(bmp, 0, 0, c.width, c.height);
+  if (bmp.close) bmp.close();
+  const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.85));
+  if (!blob) throw new Error('encode'); return blob;
+}
+async function storeImage(file, key){
+  const blob = await compressImage(file), buf = await blob.arrayBuffer(), id = uid();
+  imgRaw.set(id, key ? Object.assign({ t:blob.type }, await encBytes(key, buf)) : { t:blob.type, d:b64(buf) });
+  imgUrl.set(id, URL.createObjectURL(blob)); return id;
+}
+async function submitImage(f, fd, it, sec){
+  const files = [...f.querySelector('input[type=file]').files].filter(x => x.size > 0);
+  if (!it && !files.length){ toast('Hãy chọn ít nhất một ảnh'); return; }
+  let key = null; if (sec){ key = vaultKey || await ensureKey(); if (!key) return; }
+  const btn = f.querySelector('button[type=submit]'), label = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Đang xử lý ảnh...';
+  const typed = fd.get('title').trim(), note = fd.get('note').trim(), date = fd.get('date') || TODAY;
+  const tags = [...new Set(fd.get('tags').split(',').map(x => x.trim()).filter(Boolean))];
+  const made = []; let fail = 0;
+  try {
+    for (const file of files){
+      try { made.push({ id:await storeImage(file, key), name:file.name.replace(/\.[^.]+$/, '') }); } catch (e) { fail++; }
+    }
+    if (fail) toast('Có ' + fail + ' tệp không phải ảnh hoặc không đọc được');
+    if (files.length && !made.length) return;
+    if (it){
+      const cur = sec ? (secCache.get(it.id) || {}) : it, oldId = cur.imgId;
+      const v = { title:typed || cur.title || (made[0] && made[0].name) || 'Ảnh', note, date, tags };
+      if (made.length){ v.imgId = made[0].id; dropImg(oldId); } else if (oldId) v.imgId = oldId;
+      if (sec){ const o = Object.assign({}, cur, v); it.enc = await encText(key, JSON.stringify(o)); if (o.imgId) it.img = o.imgId; secCache.set(it.id, o); }
+      else { Object.assign(it, v); if (made.length) delete it.url; }
+    } else {
+      for (let n = 0; n < made.length; n++){
+        const v = { title:typed ? (made.length > 1 ? typed + ' ' + (n + 1) : typed) : (made[n].name || 'Ảnh'), note, date, tags, imgId:made[n].id };
+        if (sec){ const o = { id:uid(), type:'image', sec:true, img:made[n].id }; o.enc = await encText(key, JSON.stringify(v)); secCache.set(o.id, v); state.items.push(o); }
+        else state.items.push(Object.assign({ id:uid(), type:'image' }, v));
+      }
+    }
+    imgDirty = true; $('#dlg').close(); save(); toast(sec ? 'Đã lưu ảnh (đã mã hóa)' : 'Đã lưu ảnh');
+  } finally { btn.disabled = false; btn.textContent = label; }
+}
+
 /* ---------- Mã hóa ghi chú (AES-256-GCM, khóa sinh từ mật khẩu bằng PBKDF2) ---------- */
 const CHECK = 'kho-ca-nhan-ok', ITER = 600000, AUTO_LOCK = 60 * 1000, SEC_LOCK = 5 * 60 * 1000;
 const te = new TextEncoder(), td = new TextDecoder();
@@ -704,6 +891,11 @@ async function encText(key, text){
 async function decText(key, o){
   return td.decode(await crypto.subtle.decrypt({ name:'AES-GCM', iv:unb64(o.iv) }, key, unb64(o.ct)));
 }
+async function encBytes(key, buf){
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  return { iv:b64(iv), ct:b64(await crypto.subtle.encrypt({ name:'AES-GCM', iv }, key, buf)) };
+}
+function decBytes(key, o){ return crypto.subtle.decrypt({ name:'AES-GCM', iv:unb64(o.iv) }, key, unb64(o.ct)); }
 async function makeVault(pw){
   const salt = crypto.getRandomValues(new Uint8Array(16)), key = await deriveKey(pw, salt, ITER);
   return { key, vault:{ v:1, salt:b64(salt), iter:ITER, check:await encText(key, CHECK) } };
@@ -719,7 +911,8 @@ function touch(){
 function softLock(){ if (!edit && branch !== 'sec') lockNow(); }
 function lockNow(){
   const wasSec = branch === 'sec';
-  vaultKey = null; noteText = ''; clearTimeout(lockTimer); secCache.clear();
+  vaultKey = null; noteText = ''; clearTimeout(lockTimer); secCache.clear(); swSend({ type:'clear' });
+  imgRaw.forEach((r, id) => { if (r.iv && imgUrl.has(id)){ URL.revokeObjectURL(imgUrl.get(id)); imgUrl.delete(id); } });
   if ($('#ntx').open) $('#ntx').close();
   if ($('#hlp').open) $('#hlp').close();
   if (wasSec){ branch = 'pub'; if ($('#lbx').open) $('#lbx').close(); if ($('#vdx').open) $('#vdx').close(); }
@@ -795,7 +988,11 @@ async function changePassword(){
     for (const it of notes) plain.push(await decText(old, it.enc));
     const r = await makeVault(pw), out = [];
     for (const t of plain) out.push(await encText(r.key, t));
+    const imgs = [...imgRaw.entries()].filter(([, v]) => v.iv), ipl = [], iout = [];
+    for (const [, v] of imgs) ipl.push(await decBytes(old, v));
+    for (const bf of ipl) iout.push(await encBytes(r.key, bf));
     notes.forEach((it, i) => it.enc = out[i]);
+    imgs.forEach(([k, v], i) => imgRaw.set(k, Object.assign({}, v, iout[i]))); if (imgs.length) imgDirty = true;
     state.vault = r.vault; vaultKey = r.key; touch(); save(); toast('Đã đổi mật khẩu. Nhớ xuất data.json và tải lên GitHub.');
   } catch (e) { toast('Không đổi được mật khẩu, dữ liệu giữ nguyên'); }
 }
@@ -905,8 +1102,8 @@ async function openProfile(){
 function openLightbox(i){
   if (!lbList.length) return; lbIdx = (i + lbList.length) % lbList.length;
   const it = lbList[lbIdx];
-  $('#lbTitle').textContent = it.title; $('#lbImg').src = imgSrc(it.url); $('#lbImg').alt = it.title;
-  $('#lbNote').textContent = it.note || ''; $('#lbOpen').href = safeUrl(it.url) || '#';
+  $('#lbTitle').textContent = it.title; $('#lbImg').src = srcOf(it); $('#lbImg').alt = it.title;
+  $('#lbNote').textContent = it.note || ''; $('#lbOpen').href = it.imgId ? srcOf(it) : (safeUrl(it.url) || '#');
   $('#lbPrev').disabled = $('#lbNext').disabled = lbList.length < 2;
   if (!$('#lbx').open) $('#lbx').showModal();
 }
@@ -916,18 +1113,40 @@ $('#lbX').onclick = () => $('#lbx').close();
 addEventListener('keydown', e => {
   if ($('#lbx').open){ if (e.key === 'ArrowLeft') openLightbox(lbIdx - 1); if (e.key === 'ArrowRight') openLightbox(lbIdx + 1); }
 });
-function openVideo(id){
-  const it = state.items.find(x => x.id === id); if (!it) return;
-  const v = videoInfo(it.url);
-  if (v.kind === 'link'){ if (v.src) window.open(v.src, '_blank', 'noopener'); else toast('Link video không hợp lệ'); return; }
+async function openVideo(id){
+  const raw = state.items.find(x => x.id === id); if (!raw) return;
+  const it = raw.sec ? secView(raw) : raw;
+  closeVideo();
+  let body;
+  if (it.vidId){
+    let rec = null; try { rec = await vidGet(it.vidId); } catch (e) {}
+    if (!rec){ toast('Video này chưa có trên thiết bị này. Video tải lên chỉ nằm ở trình duyệt đã tải.'); return; }
+    let blob = rec.blob, streamSrc = '';
+    if (!blob){
+      if (!vaultKey){ toast('Hãy mở khóa nhánh Bảo mật trước'); return; }
+      if (rec.n && await swReady() && swSend({ type:'key', key:vaultKey })) streamSrc = new URL('__vid/' + it.vidId, document.baseURI).href;
+      else try {
+        toast('Đang giải mã video...'); const parts = [];
+        if (rec.n){ for (let k = 0; k < rec.n; k++){ const c = await vidGet(it.vidId + '#' + k); parts.push(new Blob([await crypto.subtle.decrypt({ name:'AES-GCM', iv:c.iv }, vaultKey, c.ct)])); } }
+        else parts.push(await crypto.subtle.decrypt({ name:'AES-GCM', iv:rec.iv }, vaultKey, rec.ct));
+        blob = new Blob(parts, { type:rec.t || 'video/mp4' });
+      }
+      catch (e) { toast('Không giải mã được video này'); return; }
+    }
+    if (streamSrc) body = '<video class="player" src="' + esc(streamSrc) + '" controls autoplay playsinline></video>';
+    else { vidBlobUrl = URL.createObjectURL(blob); body = '<video class="player" src="' + esc(vidBlobUrl) + '" controls autoplay playsinline></video>'; }
+  } else {
+    const v = videoInfo(it.url);
+    if (v.kind === 'link'){ if (v.src) window.open(v.src, '_blank', 'noopener'); else toast('Link video không hợp lệ'); return; }
+    body = v.kind === 'embed'
+      ? '<iframe class="player" src="' + esc(v.src) + '" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>'
+      : '<video class="player" src="' + esc(v.src) + '" controls autoplay playsinline></video>';
+  }
   $('#vdTitle').textContent = it.title;
-  $('#vdBody').innerHTML = (v.kind === 'embed'
-    ? '<iframe class="player" src="' + esc(v.src) + '" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>'
-    : '<video class="player" src="' + esc(v.src) + '" controls autoplay playsinline></video>') +
-    (it.note ? '<p style="color:var(--muted);margin:10px 0 0">' + esc(it.note) + '</p>' : '');
+  $('#vdBody').innerHTML = body + (it.note ? '<p style="color:var(--muted);margin:10px 0 0">' + esc(it.note) + '</p>' : '');
   $('#vdx').showModal();
 }
-function closeVideo(){ $('#vdBody').innerHTML = ''; }
+function closeVideo(){ $('#vdBody').innerHTML = ''; if (vidBlobUrl){ URL.revokeObjectURL(vidBlobUrl); vidBlobUrl = ''; } }
 $('#vdX').onclick = () => $('#vdx').close();
 $('#vdx').addEventListener('close', closeVideo);
 $('#lbx').addEventListener('close', () => { $('#lbImg').removeAttribute('src'); });
@@ -936,15 +1155,16 @@ $('#lbx').addEventListener('close', () => { $('#lbImg').removeAttribute('src'); 
 /* ---------- Xuất và nhập ---------- */
 function exportData(){
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([JSON.stringify(state, null, 2)], { type:'application/json' }));
+  pruneImgs();
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(Object.assign({}, state, { images:Object.fromEntries(imgRaw) }))], { type:'application/json' }));
   a.download = 'data.json'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
-  toast('Đã xuất data.json. Tải tệp này lên kho GitHub.');
+  toast(state.items.some(i => i.vidId || i.vid) ? 'Đã xuất data.json. Video tải lên chỉ nằm trong trình duyệt này, không có trong tệp.' : 'Đã xuất data.json. Tải tệp này lên kho GitHub.');
 }
 $('#importFile').onchange = e => {
   const f = e.target.files[0]; if (!f) return;
   const r = new FileReader();
   r.onload = () => {
-    try { const o = JSON.parse(r.result); if (!o || !Array.isArray(o.items)) throw 0; lockNow(); state = normalize(o); save(); toast('Đã nhập dữ liệu'); }
+    try { const o = JSON.parse(r.result); if (!o || !Array.isArray(o.items)) throw 0; lockNow(); resetImgs(); state = normalize(o); ingestImages(); imgDirty = true; save(); toast('Đã nhập dữ liệu'); }
     catch (err) { toast('Tệp data.json không hợp lệ'); }
   };
   r.readAsText(f); e.target.value = '';
