@@ -325,7 +325,7 @@ footer{padding:0 0 36px;color:var(--muted);font-size:14px}
     <li>Bấm <b>Xuất data.json</b>, rồi trong kho GitHub chọn Add file, Upload files và tải <code>data.json</code> lên, ghi đè bản cũ. Mọi thiết bị sẽ thấy dữ liệu mới sau ít phút.</li></ul>
     <h3>Nhánh Bảo mật</h3>
     <ul><li>Mỗi mục (Tệp, Hình ảnh, Học tập, Video) có hai nhánh: <b>Công khai</b> và <b>Bảo mật</b>. Bấm Bảo mật rồi nhập mật khẩu để xem.</li>
-    <li>Muốn thêm mục bảo mật: bật Chỉnh sửa, chuyển sang nhánh Bảo mật rồi bấm nút Thêm. Tên, link, ghi chú, thẻ và ngày đều được mã hóa AES-256; trong data.json chỉ còn chuỗi mã hóa.</li>
+    <li>Muốn thêm mục bảo mật: bật Chỉnh sửa, chuyển sang nhánh Bảo mật rồi bấm nút Thêm (riêng mục Tệp còn có Thêm ghi chú txt, cả tên lẫn nội dung đều được mã hóa). Tên, link, ghi chú, thẻ và ngày đều được mã hóa AES-256; trong data.json chỉ còn chuỗi mã hóa.</li>
     <li>Nhánh Bảo mật tự khóa sau 5 phút không thao tác, hoặc bấm Khóa ngay. Dùng chung mật khẩu với ghi chú; đổi mật khẩu sẽ mã hóa lại tất cả.</li>
     <li>Chỉ liên kết được ẩn: nếu tệp, ảnh hay video nằm công khai trong kho GitHub, ai biết đúng đường dẫn vẫn mở được. Nên dùng link Google Drive hoặc YouTube không công khai.</li></ul>
     <h3>Lưu ý riêng tư</h3>
@@ -488,7 +488,7 @@ function renderPanel(){
     h += '<div class="seg" role="group" aria-label="Lọc theo trạng thái">' +
       [['all', 'Tất cả'], ['doing', 'Đang học'], ['plan', 'Dự định'], ['done', 'Đã xong']].map(([k, l]) => '<button data-act="stat" data-v="' + k + '" aria-pressed="' + (stat === k) + '">' + l + '</button>').join('') + '</div>';
   }
-  if (edit && t === 'file' && branch === 'pub') h += '<button class="btn" data-act="addnote">Thêm ghi chú (txt)</button>';
+  if (edit && t === 'file') h += '<button class="btn" data-act="addnote">Thêm ghi chú (txt)</button>';
   if (edit) h += '<button class="btn pri" data-act="add">' + cfg.add + '</button>';
   h += '</div>';
   if (tagSet.length){
@@ -519,7 +519,7 @@ const editBtns = i => edit ? '<div class="acts"><button class="btn sm" data-act=
 
 function cardFile(i){
   if (i.kind === 'note'){
-    const msg = i.enc ? 'Đã mã hóa. Nhập mật khẩu để xem.' : 'Chưa mã hóa. Bấm Xem để đặt mật khẩu và mã hóa.';
+    const msg = i.sec ? 'Ghi chú bảo mật, đã mã hóa cả tên và nội dung.' : (i.enc ? 'Đã mã hóa. Nhập mật khẩu để xem.' : 'Chưa mã hóa. Bấm Xem để đặt mật khẩu và mã hóa.');
     return '<article class="file"><div class="ext" style="--k:#475569">TXT</div><div><h3><button class="linkbtn" data-act="note" data-id="' + esc(i.id) + '">' + esc(i.title) + '</button></h3>' +
       '<p>' + msg + '</p>' + tagsHtml(i) + editBtns(i) + '</div>' +
       '<div class="side">' + (fmtDate(i.date) ? '<div class="date">' + fmtDate(i.date) + '</div>' : '') +
@@ -609,8 +609,8 @@ $('#panel').addEventListener('click', e => {
   if (act === 'tag'){ tag = b.dataset.v; renderPanel(); }
   else if (act === 'stat'){ stat = b.dataset.v; renderPanel(); }
   else if (act === 'add') openForm(TABS[tab].type, null, branch === 'sec');
-  else if (act === 'edit'){ const it = state.items.find(x => x.id === id); if (it && it.kind === 'note') openNote(id); else openForm(TABS[tab].type, id); }
-  else if (act === 'addnote') openNote();
+  else if (act === 'edit'){ const it = state.items.find(x => x.id === id); if (it && (it.kind === 'note' || (it.sec && (secCache.get(it.id) || {}).kind === 'note'))) openNote(id); else openForm(TABS[tab].type, id); }
+  else if (act === 'addnote') openNote(null, branch === 'sec');
   else if (act === 'note') viewNote(id);
   else if (act === 'del'){ const it = state.items.find(x => x.id === id), nm = it && (it.sec ? (secCache.get(it.id) || {}).title : it.title); if (it && confirm('Xóa "' + nm + '"?')){ state.items = state.items.filter(x => x.id !== id); secCache.delete(id); save(); toast('Đã xóa'); } }
   else if (act === 'branch') setBranch(b.dataset.v);
@@ -801,17 +801,19 @@ async function changePassword(){
 }
 
 /* ---------- Ghi chú dạng txt ---------- */
-async function openNote(id){
+async function openNote(id, sec){
   const it = id ? state.items.find(x => x.id === id) : null;
+  sec = it ? !!it.sec : !!sec;
   const key = await ensureKey(); if (!key) return;
-  let content = '';
-  if (it){
+  let content = '', d = it || {};
+  if (sec){
+    if (it){ if (!secCache.has(it.id)) await loadSecure(); d = secCache.get(it.id) || {}; content = d.content || ''; }
+  } else if (it){
     if (!it.enc){ await sealNotes(); save(); }
     try { content = await decText(key, it.enc); } catch (e) { toast('Không giải mã được ghi chú này'); return; }
   }
-  const d = it || {};
-  const f = $('#form'); $('#dlgTitle').textContent = it ? 'Sửa ghi chú' : 'Thêm ghi chú (txt)';
-  f.innerHTML = field('Tên ghi chú', 'title', d.title, { req:true, ph:'Ví dụ: Lưu ý khi lập trình', hint:'Tên ghi chú không được mã hóa, đừng ghi thông tin nhạy cảm vào tên.' }) +
+  const f = $('#form'); $('#dlgTitle').textContent = (it ? 'Sửa ghi chú' : 'Thêm ghi chú (txt)') + (sec ? ' (bảo mật)' : '');
+  f.innerHTML = field('Tên ghi chú', 'title', d.title, { req:true, ph:'Ví dụ: Lưu ý khi lập trình', hint:sec ? 'Trong nhánh bảo mật, cả tên và nội dung đều được mã hóa.' : 'Tên ghi chú không được mã hóa, đừng ghi thông tin nhạy cảm vào tên.' }) +
     field('Nội dung', 'content', content, { area:true, rows:14, hint:'Nội dung được mã hóa bằng mật khẩu trước khi lưu.' }) +
     field('Thẻ', 'tags', (d.tags || []).join(', '), { hint:'Cách nhau bằng dấu phẩy, ví dụ: lưu ý, Android' }) +
     field('Ngày', 'date', d.date || TODAY, { type:'date' }) +
@@ -819,10 +821,18 @@ async function openNote(id){
   f.onsubmit = async e => {
     e.preventDefault(); const fd = new FormData(f);
     const k = await ensureKey(); if (!k) return;
-    const o = it || { id:uid(), type:'file', kind:'note' };
-    o.title = fd.get('title').trim(); o.enc = await encText(k, fd.get('content')); delete o.content; o.date = fd.get('date') || TODAY;
-    o.tags = [...new Set(fd.get('tags').split(',').map(x => x.trim()).filter(Boolean))];
-    if (!it) state.items.push(o);
+    const tags = [...new Set(fd.get('tags').split(',').map(x => x.trim()).filter(Boolean))];
+    if (sec){
+      const v = { kind:'note', title:fd.get('title').trim(), content:fd.get('content'), tags, date:fd.get('date') || TODAY };
+      const o = it || { id:uid(), type:'file', sec:true };
+      o.enc = await encText(k, JSON.stringify(v)); secCache.set(o.id, v);
+      if (!it) state.items.push(o);
+    } else {
+      const o = it || { id:uid(), type:'file', kind:'note' };
+      o.title = fd.get('title').trim(); o.enc = await encText(k, fd.get('content')); delete o.content; o.date = fd.get('date') || TODAY;
+      o.tags = tags;
+      if (!it) state.items.push(o);
+    }
     $('#dlg').close(); save(); toast('Đã lưu ghi chú (đã mã hóa)');
   };
   $('#fCancel').onclick = () => $('#dlg').close();
@@ -831,15 +841,21 @@ async function openNote(id){
 async function viewNote(id){
   const it = state.items.find(x => x.id === id); if (!it) return;
   const key = await ensureKey(); if (!key) return;
-  if (!it.enc){ await sealNotes(); save(); }
-  let text;
-  try { text = await decText(key, it.enc); } catch (e) { toast('Không giải mã được ghi chú này'); softLock(); return; }
-  noteId = id; noteText = text; $('#ntTitle').textContent = it.title; $('#ntBody').textContent = text || '(Ghi chú trống)';
+  let text, title = it.title;
+  if (it.sec){
+    if (!secCache.has(it.id)) await loadSecure();
+    const c = secCache.get(it.id); if (!c){ toast('Không giải mã được ghi chú này'); return; }
+    text = c.content || ''; title = c.title;
+  } else {
+    if (!it.enc){ await sealNotes(); save(); }
+    try { text = await decText(key, it.enc); } catch (e) { toast('Không giải mã được ghi chú này'); softLock(); return; }
+  }
+  noteId = id; noteText = text; $('#ntTitle').textContent = title; $('#ntBody').textContent = text || '(Ghi chú trống)';
   $('#ntx').showModal();
 }
 function downloadNote(){
   const it = state.items.find(x => x.id === noteId); if (!it) return;
-  const name = (norm(it.title).replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'ghi-chu') + '.txt';
+  const name = (norm(it.sec ? (secCache.get(it.id) || {}).title : it.title).replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'ghi-chu') + '.txt';
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob(['\ufeff' + noteText], { type:'text/plain;charset=utf-8' }));
   a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
