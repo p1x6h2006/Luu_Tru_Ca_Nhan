@@ -173,6 +173,12 @@ a{color:inherit}
 .seg button{border:0;background:transparent;padding:7px 12px;font-size:14px;border-right:1px solid var(--rule);transition:background .2s,color .2s}
 .seg button:last-child{border-right:0}
 .seg button:hover{background:rgba(34,211,238,.12)}
+.seg button .n{opacity:.7;margin-left:5px;font-variant-numeric:tabular-nums}
+.seg button .ic{vertical-align:-2px;margin-right:5px}
+.branch{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.panel.secure{border-color:rgba(251,113,133,.32)}
+.secbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;background:rgba(251,113,133,.08);border:1px dashed rgba(251,113,133,.55);border-radius:12px;padding:10px 12px;margin-bottom:14px}
+.secbar p{margin:0;flex:1 1 280px;font-size:14px;color:var(--muted)}
 .seg button[aria-pressed=true]{background:linear-gradient(120deg,#0284c7,#6d28d9);color:#fff}
 .summary{display:flex;gap:18px;flex-wrap:wrap;margin-bottom:14px}
 .summary div{font-size:14px;color:var(--muted);padding:8px 14px;border:1px solid var(--rule);border-radius:12px;background:rgba(255,255,255,.03);transition:transform .25s,border-color .25s,box-shadow .25s}
@@ -317,8 +323,13 @@ footer{padding:0 0 36px;color:var(--muted);font-size:14px}
     <h3>Lưu thay đổi cho mọi thiết bị</h3>
     <ul><li>Bật <b>Chỉnh sửa</b>, thêm hay sửa mục. Thay đổi lúc này mới nằm trên trình duyệt của bạn.</li>
     <li>Bấm <b>Xuất data.json</b>, rồi trong kho GitHub chọn Add file, Upload files và tải <code>data.json</code> lên, ghi đè bản cũ. Mọi thiết bị sẽ thấy dữ liệu mới sau ít phút.</li></ul>
+    <h3>Nhánh Bảo mật</h3>
+    <ul><li>Mỗi mục (Tệp, Hình ảnh, Học tập, Video) có hai nhánh: <b>Công khai</b> và <b>Bảo mật</b>. Bấm Bảo mật rồi nhập mật khẩu để xem.</li>
+    <li>Muốn thêm mục bảo mật: bật Chỉnh sửa, chuyển sang nhánh Bảo mật rồi bấm nút Thêm. Tên, link, ghi chú, thẻ và ngày đều được mã hóa AES-256; trong data.json chỉ còn chuỗi mã hóa.</li>
+    <li>Nhánh Bảo mật tự khóa sau 5 phút không thao tác, hoặc bấm Khóa ngay. Dùng chung mật khẩu với ghi chú; đổi mật khẩu sẽ mã hóa lại tất cả.</li>
+    <li>Chỉ liên kết được ẩn: nếu tệp, ảnh hay video nằm công khai trong kho GitHub, ai biết đúng đường dẫn vẫn mở được. Nên dùng link Google Drive hoặc YouTube không công khai.</li></ul>
     <h3>Lưu ý riêng tư</h3>
-    <p>Trang GitHub Pages là công khai: ai có link đều xem được. Chỉ <b>nội dung ghi chú txt</b> được mã hóa; tên ghi chú, thẻ, link tệp, ảnh và video thì không. Đừng đặt tên ghi chú chứa thông tin nhạy cảm, và đừng đưa giấy tờ cá nhân vào các mục khác.</p>
+    <p>Trang GitHub Pages là công khai: ai có link đều xem được. Chỉ <b>nội dung ghi chú txt</b> được mã hóa; tên ghi chú, thẻ, link tệp, ảnh và video ở nhánh Công khai thì không (hãy đưa thông tin nhạy cảm vào nhánh Bảo mật). Đừng đặt tên ghi chú chứa thông tin nhạy cảm, và đừng đưa giấy tờ cá nhân vào các mục khác.</p>
   </div></dialog>
 <div class="toast" id="toast" role="status"></div>
 <input type="file" id="importFile" accept="application/json,.json" hidden>
@@ -356,6 +367,8 @@ const DEFAULT = {
 
 let state = null, source = 'default';
 let tab = 'files', q = '', tag = '', stat = 'all', edit = false, lbList = [], lbIdx = 0;
+let branch = 'pub';            // 'pub' = công khai, 'sec' = bảo mật
+const secCache = new Map();    // id -> nội dung đã giải mã (chỉ nằm trong bộ nhớ, xóa khi khóa)
 
 /* ---------- Tiện ích ---------- */
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -398,7 +411,7 @@ function videoInfo(u){
 /* ---------- Dữ liệu ---------- */
 function normalize(s){
   s.profile = Object.assign({ name:'', tagline:'', bio:'', links:[] }, s.profile || {});
-  s.items = (Array.isArray(s.items) ? s.items : []).map(i => Object.assign({ id:uid(), tags:[], note:'', date:TODAY }, i));
+  s.items = (Array.isArray(s.items) ? s.items : []).map(i => i.sec ? Object.assign({ id:uid() }, i) : Object.assign({ id:uid(), tags:[], note:'', date:TODAY }, i));
   return s;
 }
 async function load(){
@@ -415,9 +428,12 @@ function save(){
 }
 
 /* ---------- Hiển thị ---------- */
-function typeOf(t){ return state.items.filter(i => i.type === t); }
+function typeOf(t){ return state.items.filter(i => i.type === t && !i.sec); }
+function secOf(t){ return state.items.filter(i => i.type === t && i.sec); }
+const secView = i => Object.assign({ tags:[], note:'', date:'' }, secCache.get(i.id) || { title:'(không giải mã được)' }, { id:i.id, type:i.type, sec:true });
+const curItems = t => branch === 'sec' ? secOf(t).map(secView) : typeOf(t);
 function visible(){
-  const t = TABS[tab].type; let a = typeOf(t);
+  const t = TABS[tab].type; let a = curItems(t);
   if (q){ const s = norm(q); a = a.filter(i => norm([i.title, i.note, (i.tags || []).join(' ')].join(' ')).includes(s)); }
   if (tag) a = a.filter(i => (i.tags || []).includes(tag));
   if (t === 'learn' && stat !== 'all') a = a.filter(i => i.status === stat);
@@ -443,7 +459,8 @@ function render(){
 function renderPanel(){
   const cfg = TABS[tab], t = cfg.type, panel = $('#panel');
   panel.style.setProperty('--pc', 'var(--c-' + tab + ')');
-  const all = typeOf(t), list = visible();
+  panel.classList.toggle('secure', branch === 'sec');
+  const all = curItems(t), list = visible();
   const tagSet = [...new Set(all.flatMap(i => i.tags || []))].sort((a, b) => a.localeCompare(b, 'vi'));
   if (tag && !tagSet.includes(tag)) tag = '';
 
@@ -458,12 +475,20 @@ function renderPanel(){
       '<button class="btn sm" data-act="import">Nhập data.json</button>' +
       '<button class="btn sm danger" data-act="reset">Về dữ liệu gốc</button></div>';
   }
+  const LOCK_IC = '<svg class="ic" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M17 9V7a5 5 0 0 0-10 0v2H5v12h14V9h-2zm-8-2a3 3 0 0 1 6 0v2H9V7z"/></svg>';
+  h += '<div class="branch"><div class="seg" role="group" aria-label="Nhánh của mục ' + esc(cfg.label) + '">' +
+    '<button data-act="branch" data-v="pub" aria-pressed="' + (branch === 'pub') + '">Công khai<span class="n">' + typeOf(t).length + '</span></button>' +
+    '<button data-act="branch" data-v="sec" aria-pressed="' + (branch === 'sec') + '">' + LOCK_IC + 'Bảo mật<span class="n">' + secOf(t).length + '</span></button></div></div>';
+  if (branch === 'sec'){
+    h += '<div class="secbar"><p>Nhánh bảo mật của mục ' + esc(cfg.label) + ': tên, link, ghi chú và thẻ được mã hóa AES-256 bằng mật khẩu của bạn, người khác chỉ thấy dữ liệu đã mã hóa. Tự khóa sau 5 phút không thao tác.</p>' +
+      '<button class="btn sm" data-act="lock">Khóa ngay</button></div>';
+  }
   h += '<div class="tools"><label class="sr" for="q">Tìm kiếm</label><input class="search" id="q" type="search" placeholder="Tìm trong ' + esc(cfg.label.toLowerCase()) + '" value="' + esc(q) + '">';
   if (t === 'learn'){
     h += '<div class="seg" role="group" aria-label="Lọc theo trạng thái">' +
       [['all', 'Tất cả'], ['doing', 'Đang học'], ['plan', 'Dự định'], ['done', 'Đã xong']].map(([k, l]) => '<button data-act="stat" data-v="' + k + '" aria-pressed="' + (stat === k) + '">' + l + '</button>').join('') + '</div>';
   }
-  if (edit && t === 'file') h += '<button class="btn" data-act="addnote">Thêm ghi chú (txt)</button>';
+  if (edit && t === 'file' && branch === 'pub') h += '<button class="btn" data-act="addnote">Thêm ghi chú (txt)</button>';
   if (edit) h += '<button class="btn pri" data-act="add">' + cfg.add + '</button>';
   h += '</div>';
   if (tagSet.length){
@@ -477,8 +502,8 @@ function renderPanel(){
   }
 
   if (!list.length){
-    h += '<div class="empty"><b>' + (all.length ? 'Không có mục nào khớp' : cfg.empty) + '</b>' +
-      (all.length ? 'Thử xóa từ khóa hoặc bỏ lọc.' : cfg.hint) +
+    h += '<div class="empty"><b>' + (all.length ? 'Không có mục nào khớp' : (branch === 'sec' ? 'Nhánh bảo mật chưa có mục nào' : cfg.empty)) + '</b>' +
+      (all.length ? 'Thử xóa từ khóa hoặc bỏ lọc.' : (branch === 'sec' ? 'Bấm Chỉnh sửa rồi thêm mục. Mục được mã hóa trước khi lưu.' : cfg.hint)) +
       (!all.length ? (edit ? '<br><button class="btn pri" data-act="add">' + cfg.add + '</button>' : '<br>Bấm Chỉnh sửa ở góc trên để thêm.') : '') + '</div>';
   } else if (t === 'file') h += list.map(cardFile).join('');
   else if (t === 'image') { lbList = list; h += '<div class="gallery">' + list.map(cardImage).join('') + '</div>'; }
@@ -540,16 +565,39 @@ document.querySelectorAll('.tab').forEach(b => {
   };
 });
 function setTab(k){ tab = k; q = ''; tag = ''; stat = 'all'; history.replaceState(null, '', '#' + k); render(); }
+async function setBranch(b){
+  if (b === branch) return;
+  q = ''; tag = ''; stat = 'all';
+  if (b === 'sec'){
+    const k = await ensureKey(); if (!k) return;
+    await loadSecure(); branch = 'sec'; touch(); render();
+  } else if (edit){ branch = 'pub'; touch(); render(); }
+  else lockNow();            // rời nhánh bảo mật khi không chỉnh sửa: khóa luôn
+}
+async function loadSecure(){
+  let bad = 0;
+  for (const it of state.items){
+    if (!it.sec || secCache.has(it.id)) continue;
+    try { secCache.set(it.id, JSON.parse(await decText(vaultKey, it.enc))); } catch (e) { bad++; }
+  }
+  if (bad) toast('Có ' + bad + ' mục không giải mã được');
+}
 
 $('#panel').addEventListener('input', e => {
   if (e.target.id === 'q'){ q = e.target.value; renderPanel(); }
   else if (e.target.dataset.act === 'prog'){
-    const it = state.items.find(x => x.id === e.target.dataset.id); if (!it) return;
+    const raw = state.items.find(x => x.id === e.target.dataset.id); if (!raw) return;
+    const it = raw.sec ? secCache.get(raw.id) : raw; if (!it) return;
     it.progress = +e.target.value; it.status = it.progress >= 100 ? 'done' : (it.progress > 0 ? 'doing' : 'plan');
     const card = e.target.closest('.lc'); card.querySelector('.bar i').style.width = it.progress + '%'; card.querySelector('.pct span').textContent = it.progress + '%';
   }
 });
-$('#panel').addEventListener('change', e => { if (e.target.dataset.act === 'prog') save(); });
+$('#panel').addEventListener('change', async e => {
+  if (e.target.dataset.act !== 'prog') return;
+  const it = state.items.find(x => x.id === e.target.dataset.id);
+  if (it && it.sec){ if (!vaultKey || !secCache.has(it.id)) return; it.enc = await encText(vaultKey, JSON.stringify(secCache.get(it.id))); }
+  save();
+});
 $('#panel').addEventListener('error', e => {
   if (e.target.tagName !== 'IMG') return;
   if (e.target.closest('.pic')){ const d = document.createElement('div'); d.className = 'miss'; d.textContent = 'Không tải được ảnh. Kiểm tra lại link hoặc quyền chia sẻ.'; e.target.replaceWith(d); }
@@ -560,11 +608,13 @@ $('#panel').addEventListener('click', e => {
   const act = b.dataset.act, id = b.dataset.id;
   if (act === 'tag'){ tag = b.dataset.v; renderPanel(); }
   else if (act === 'stat'){ stat = b.dataset.v; renderPanel(); }
-  else if (act === 'add') openForm(TABS[tab].type);
+  else if (act === 'add') openForm(TABS[tab].type, null, branch === 'sec');
   else if (act === 'edit'){ const it = state.items.find(x => x.id === id); if (it && it.kind === 'note') openNote(id); else openForm(TABS[tab].type, id); }
   else if (act === 'addnote') openNote();
   else if (act === 'note') viewNote(id);
-  else if (act === 'del'){ const it = state.items.find(x => x.id === id); if (it && confirm('Xóa "' + it.title + '"?')){ state.items = state.items.filter(x => x.id !== id); save(); toast('Đã xóa'); } }
+  else if (act === 'del'){ const it = state.items.find(x => x.id === id), nm = it && (it.sec ? (secCache.get(it.id) || {}).title : it.title); if (it && confirm('Xóa "' + nm + '"?')){ state.items = state.items.filter(x => x.id !== id); secCache.delete(id); save(); toast('Đã xóa'); } }
+  else if (act === 'branch') setBranch(b.dataset.v);
+  else if (act === 'lock'){ lockNow(); toast('Đã khóa'); }
   else if (act === 'lb') openLightbox(+b.dataset.i);
   else if (act === 'play') openVideo(id);
   else if (act === 'profile') openProfile();
@@ -581,7 +631,7 @@ $('#editBtn').onclick = async () => {
 $('#helpBtn').onclick = async () => { const k = await ensureKey(); if (k) $('#hlp').showModal(); };
 $('#plinks').onclick = e => { const b = e.target.closest('[data-link]'); if (b) openLink(+b.dataset.link); };
 $('#hlpX').onclick = () => $('#hlp').close();
-$('#hlp').addEventListener('close', () => { if (!edit) lockNow(); });
+$('#hlp').addEventListener('close', () => { softLock(); });
 
 /* ---------- Biểu mẫu thêm hoặc sửa ---------- */
 function field(label, name, val, opt){
@@ -591,9 +641,11 @@ function field(label, name, val, opt){
     : '<input name="' + name + '" type="' + (opt.type || 'text') + '" value="' + v + '"' + req + (opt.attrs || '') + (opt.ph ? ' placeholder="' + esc(opt.ph) + '"' : '') + '>';
   return '<label class="field"><span>' + label + '</span>' + ctl + (opt.hint ? '<small>' + opt.hint + '</small>' : '') + '</label>';
 }
-function openForm(t, id){
-  const it = id ? state.items.find(x => x.id === id) : null, d = it || {};
-  const f = $('#form'); $('#dlgTitle').textContent = it ? 'Sửa mục' : TABS[tab].add;
+function openForm(t, id, sec){
+  const it = id ? state.items.find(x => x.id === id) : null;
+  sec = it ? !!it.sec : !!sec;
+  const d = it ? (sec ? (secCache.get(it.id) || {}) : it) : {};
+  const f = $('#form'); $('#dlgTitle').textContent = (it ? 'Sửa mục' : TABS[tab].add) + (sec ? ' (bảo mật)' : '');
   let h = field('Tên', 'title', d.title, { req:true });
   if (t === 'file') h += field('Link hoặc đường dẫn', 'url', d.url, { req:true, ph:'https://drive.google.com/... hoặc files/bai-tap.pdf' });
   if (t === 'image') h += field('Link hoặc đường dẫn ảnh', 'url', d.url, { req:true, ph:'images/anh-1.jpg hoặc link Google Drive', hint:'Ảnh nên để trong thư mục images/ của kho GitHub hoặc Google Drive.' });
@@ -607,17 +659,26 @@ function openForm(t, id){
   h += field(t === 'image' ? 'Thẻ hoặc album' : 'Thẻ', 'tags', (d.tags || []).join(', '), { hint:'Cách nhau bằng dấu phẩy, ví dụ: Android, bài giảng' });
   h += field('Ngày', 'date', d.date || TODAY, { type:'date' });
   h += '<div class="drow"><button type="button" class="btn" id="fCancel">Hủy</button><button class="btn pri" type="submit">Lưu</button></div>';
+  if (sec) h = '<p class="pwmsg">Mục này nằm trong nhánh bảo mật: mọi thông tin được mã hóa trước khi lưu. Lưu ý: nếu tệp, ảnh hay video nằm công khai trong kho GitHub thì ai biết đúng đường dẫn vẫn mở được, nên dùng link Google Drive hoặc YouTube không công khai.</p>' + h;
   f.innerHTML = h;
-  f.onsubmit = e => {
-    e.preventDefault(); const fd = new FormData(f), o = it || { id:uid(), type:t };
-    o.title = fd.get('title').trim();
-    if (fd.has('url')) o.url = fd.get('url').trim();
-    if (t !== 'learn' && !safeUrl(o.url)){ toast('Link không hợp lệ'); return; }
-    if (t === 'learn'){ o.status = fd.get('status'); o.progress = Math.max(0, Math.min(100, +fd.get('progress') || 0)); }
-    o.note = fd.get('note').trim(); o.date = fd.get('date') || TODAY;
-    o.tags = [...new Set(fd.get('tags').split(',').map(x => x.trim()).filter(Boolean))];
-    if (!it) state.items.push(o);
-    $('#dlg').close(); save(); toast('Đã lưu');
+  f.onsubmit = async e => {
+    e.preventDefault(); const fd = new FormData(f), v = {};
+    v.title = fd.get('title').trim();
+    if (fd.has('url')) v.url = fd.get('url').trim();
+    if (t !== 'learn' && !safeUrl(v.url)){ toast('Link không hợp lệ'); return; }
+    if (t === 'learn'){ v.status = fd.get('status'); v.progress = Math.max(0, Math.min(100, +fd.get('progress') || 0)); }
+    v.note = fd.get('note').trim(); v.date = fd.get('date') || TODAY;
+    v.tags = [...new Set(fd.get('tags').split(',').map(x => x.trim()).filter(Boolean))];
+    if (sec){
+      const k = vaultKey || await ensureKey(); if (!k) return;
+      const o = it || { id:uid(), type:t, sec:true };
+      o.enc = await encText(k, JSON.stringify(v)); secCache.set(o.id, v);
+      if (!it) state.items.push(o);
+    } else {
+      const o = it || { id:uid(), type:t }; Object.assign(o, v);
+      if (!it) state.items.push(o);
+    }
+    $('#dlg').close(); save(); toast(sec ? 'Đã lưu (đã mã hóa)' : 'Đã lưu');
   };
   $('#fCancel').onclick = () => $('#dlg').close();
   $('#dlg').showModal();
@@ -625,7 +686,7 @@ function openForm(t, id){
 $('#dlgX').onclick = () => $('#dlg').close();
 
 /* ---------- Mã hóa ghi chú (AES-256-GCM, khóa sinh từ mật khẩu bằng PBKDF2) ---------- */
-const CHECK = 'kho-ca-nhan-ok', ITER = 600000, AUTO_LOCK = 60 * 1000;
+const CHECK = 'kho-ca-nhan-ok', ITER = 600000, AUTO_LOCK = 60 * 1000, SEC_LOCK = 5 * 60 * 1000;
 const te = new TextEncoder(), td = new TextDecoder();
 const b64 = buf => { let s = ''; new Uint8Array(buf).forEach(c => s += String.fromCharCode(c)); return btoa(s); };
 const unb64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
@@ -651,12 +712,18 @@ async function openVault(pw){
   const v = state.vault, key = await deriveKey(pw, unb64(v.salt), v.iter || ITER);
   try { return (await decText(key, v.check)) === CHECK ? key : null; } catch (e) { return null; }
 }
-function touch(){ clearTimeout(lockTimer); lockTimer = setTimeout(lockNow, AUTO_LOCK); }
+function touch(){
+  clearTimeout(lockTimer);
+  lockTimer = setTimeout(() => { if (branch === 'sec' && $('#vdx').open) return touch(); lockNow(); }, branch === 'sec' ? SEC_LOCK : AUTO_LOCK);
+}
+function softLock(){ if (!edit && branch !== 'sec') lockNow(); }
 function lockNow(){
-  vaultKey = null; noteText = ''; clearTimeout(lockTimer);
+  const wasSec = branch === 'sec';
+  vaultKey = null; noteText = ''; clearTimeout(lockTimer); secCache.clear();
   if ($('#ntx').open) $('#ntx').close();
   if ($('#hlp').open) $('#hlp').close();
-  if (edit){ edit = false; if ($('#dlg').open) $('#dlg').close(); render(); }
+  if (wasSec){ branch = 'pub'; if ($('#lbx').open) $('#lbx').close(); if ($('#vdx').open) $('#vdx').close(); }
+  if (edit || wasSec){ edit = false; if ($('#dlg').open) $('#dlg').close(); render(); }
 }
 ['pointerdown', 'keydown'].forEach(ev => addEventListener(ev, () => { if (vaultKey) touch(); }, true));
 
@@ -706,11 +773,11 @@ async function ensureKey(){
   if (!(window.crypto && crypto.subtle)){ toast('Trình duyệt không hỗ trợ mã hóa. Hãy mở trang bằng https.'); return null; }
   if (vaultKey){ touch(); return vaultKey; }
   let key, created = false;
-  if (state.vault) key = await askPassword('unlock', openVault, { title:'Nhập mật khẩu', msg:'Nhập mật khẩu để xem ghi chú hoặc bật chế độ Chỉnh sửa.', ok:'Mở khóa' });
+  if (state.vault) key = await askPassword('unlock', openVault, { title:'Nhập mật khẩu', msg:'Nhập mật khẩu để xem ghi chú, mở nhánh Bảo mật hoặc bật chế độ Chỉnh sửa.', ok:'Mở khóa' });
   else {
     created = true;
     key = await askPassword('new', async pw => { const r = await makeVault(pw); state.vault = r.vault; return r.key; },
-      { title:'Đặt mật khẩu', msg:'Mật khẩu dùng để mã hóa ghi chú txt và để mở chế độ Chỉnh sửa. Quên mật khẩu thì không thể lấy lại nội dung, hãy ghi nhớ kỹ.', ok:'Đặt mật khẩu' });
+      { title:'Đặt mật khẩu', msg:'Mật khẩu dùng để mã hóa ghi chú txt, các mục trong nhánh Bảo mật và để mở chế độ Chỉnh sửa. Quên mật khẩu thì không thể lấy lại nội dung, hãy ghi nhớ kỹ.', ok:'Đặt mật khẩu' });
   }
   if (!key) return null;
   vaultKey = key; touch();
@@ -721,10 +788,10 @@ async function ensureKey(){
 
 async function changePassword(){
   const old = await ensureKey(); if (!old) return;
-  const pw = await askPassword('new', p => p, { title:'Đổi mật khẩu', msg:'Nhập mật khẩu mới. Mọi ghi chú sẽ được mã hóa lại bằng mật khẩu này.', ok:'Đổi mật khẩu' });
+  const pw = await askPassword('new', p => p, { title:'Đổi mật khẩu', msg:'Nhập mật khẩu mới. Mọi ghi chú, liên kết và mục bảo mật sẽ được mã hóa lại bằng mật khẩu này.', ok:'Đổi mật khẩu' });
   if (!pw) return;
   try {
-    const notes = state.items.filter(i => i.kind === 'note' && i.enc), plain = [];
+    const notes = [...state.items.filter(i => i.enc && (i.kind === 'note' || i.sec)), ...(state.profile.links || []).filter(l => l.enc)], plain = [];
     for (const it of notes) plain.push(await decText(old, it.enc));
     const r = await makeVault(pw), out = [];
     for (const t of plain) out.push(await encText(r.key, t));
@@ -766,7 +833,7 @@ async function viewNote(id){
   const key = await ensureKey(); if (!key) return;
   if (!it.enc){ await sealNotes(); save(); }
   let text;
-  try { text = await decText(key, it.enc); } catch (e) { toast('Không giải mã được ghi chú này'); if (!edit) lockNow(); return; }
+  try { text = await decText(key, it.enc); } catch (e) { toast('Không giải mã được ghi chú này'); softLock(); return; }
   noteId = id; noteText = text; $('#ntTitle').textContent = it.title; $('#ntBody').textContent = text || '(Ghi chú trống)';
   $('#ntx').showModal();
 }
@@ -778,7 +845,7 @@ function downloadNote(){
   a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
 }
 $('#ntX').onclick = () => $('#ntx').close();
-$('#ntx').addEventListener('close', () => { noteText = ''; $('#ntBody').textContent = ''; if (!edit) lockNow(); });
+$('#ntx').addEventListener('close', () => { noteText = ''; $('#ntBody').textContent = ''; softLock(); });
 $('#ntDl').onclick = downloadNote;
 $('#ntCopy').onclick = async () => {
   try { await navigator.clipboard.writeText(noteText); toast('Đã sao chép'); } catch (e) { toast('Không sao chép được'); }
@@ -788,10 +855,10 @@ async function openLink(i){
   const l = (state.profile.links || [])[i]; if (!l) return;
   const key = await ensureKey(); if (!key) return;
   if (!l.enc){ await sealNotes(); save(); }
-  let url; try { url = safeUrl(await decText(key, l.enc)); } catch (e) { toast('Không giải mã được liên kết'); if (!edit) lockNow(); return; }
-  if (!url){ toast('Link không hợp lệ'); if (!edit) lockNow(); return; }
+  let url; try { url = safeUrl(await decText(key, l.enc)); } catch (e) { toast('Không giải mã được liên kết'); softLock(); return; }
+  if (!url){ toast('Link không hợp lệ'); softLock(); return; }
   if (!window.open(url, '_blank', 'noopener')) toast('Trình duyệt chặn cửa sổ mới, hãy cho phép rồi bấm lại');
-  if (!edit) lockNow();
+  softLock();
 }
 async function openProfile(){
   const key = await ensureKey(); if (!key) return;
