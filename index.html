@@ -286,7 +286,7 @@ footer{padding:0 0 36px;color:var(--muted);font-size:14px}
 <dialog id="vdx" class="wide"><div class="dh"><h2 id="vdTitle"></h2><button class="btn sm" id="vdX" type="button">Đóng</button></div><div class="db" id="vdBody"></div></dialog>
 <dialog id="ntx" class="wide"><div class="dh"><h2 id="ntTitle"></h2><button class="btn sm" id="ntX" type="button">Đóng</button></div>
   <div class="db"><pre class="notetxt" id="ntBody"></pre>
-  <div class="drow"><button class="btn" id="ntLock" type="button">Khóa lại</button><button class="btn" id="ntCopy" type="button">Sao chép</button><button class="btn" id="ntDl" type="button">Tải về .txt</button></div></div></dialog>
+  <div class="drow"><button class="btn" id="ntCopy" type="button">Sao chép</button><button class="btn" id="ntDl" type="button">Tải về .txt</button></div></div></dialog>
 <dialog id="pwx"><div class="dh"><h2 id="pwTitle"></h2><button class="btn sm" id="pwX" type="button">Đóng</button></div>
   <div class="db"><form id="pwForm" autocomplete="off">
     <p class="pwmsg" id="pwMsg"></p>
@@ -305,7 +305,7 @@ footer{padding:0 0 36px;color:var(--muted);font-size:14px}
     <h3>Ghi chú dạng txt</h3>
     <ul><li>Bật <b>Chỉnh sửa</b>, ở mục Tệp bấm <b>Thêm ghi chú (txt)</b>, đặt tên và viết nội dung. Bạn có thể tạo nhiều ghi chú, mỗi ghi chú là một tệp txt riêng.</li>
     <li>Nội dung ghi chú được <b>mã hóa bằng mật khẩu</b> (AES-256) ngay trên máy bạn, rồi mới lưu vào data.json. Muốn đọc phải nhập đúng mật khẩu. Lần đầu bấm Chỉnh sửa hoặc xem ghi chú, trang sẽ yêu cầu bạn đặt mật khẩu. Cùng mật khẩu này dùng để mở chế độ <b>Chỉnh sửa</b>.</li>
-    <li>Bấm vào tên ghi chú để đọc, sao chép hoặc tải về dạng .txt. Sau 5 phút không thao tác trang tự khóa lại và thoát chế độ Chỉnh sửa. Nút Cách lưu trữ và các nút liên kết ở đầu trang (như GitHub) cũng cần mật khẩu; địa chỉ của các liên kết này được mã hóa.</li>
+    <li>Bấm vào tên ghi chú để đọc, sao chép hoặc tải về dạng .txt. Ghi chú, hướng dẫn và liên kết tự khóa ngay khi bạn xem xong; chế độ Chỉnh sửa khóa ngay khi bấm Xong chỉnh sửa (hoặc sau 1 phút không thao tác). Nút Cách lưu trữ và các nút liên kết ở đầu trang (như GitHub) cũng cần mật khẩu; địa chỉ của các liên kết này được mã hóa.</li>
     <li>Quên mật khẩu thì không có cách nào lấy lại nội dung ghi chú, hãy nhớ kỹ hoặc cất ở nơi an toàn.</li></ul>
     <h3>Hình ảnh</h3>
     <ul><li>Đưa ảnh vào thư mục <code>images/</code> trong kho GitHub, rồi dán <code>images/anh-1.jpg</code>.</li>
@@ -574,13 +574,14 @@ $('#panel').addEventListener('click', e => {
   else if (act === 'reset'){ if (confirm('Bỏ mọi chỉnh sửa trên trình duyệt này và quay về dữ liệu gốc?')){ localStorage.removeItem(LS); lockNow(); state = null; load().then(render); toast('Đã về dữ liệu gốc'); } }
 });
 $('#editBtn').onclick = async () => {
-  if (edit){ edit = false; render(); return; }
+  if (edit){ lockNow(); return; }
   const k = await ensureKey(); if (!k) return;
   edit = true; render();
 };
 $('#helpBtn').onclick = async () => { const k = await ensureKey(); if (k) $('#hlp').showModal(); };
 $('#plinks').onclick = e => { const b = e.target.closest('[data-link]'); if (b) openLink(+b.dataset.link); };
 $('#hlpX').onclick = () => $('#hlp').close();
+$('#hlp').addEventListener('close', () => { if (!edit) lockNow(); });
 
 /* ---------- Biểu mẫu thêm hoặc sửa ---------- */
 function field(label, name, val, opt){
@@ -624,7 +625,7 @@ function openForm(t, id){
 $('#dlgX').onclick = () => $('#dlg').close();
 
 /* ---------- Mã hóa ghi chú (AES-256-GCM, khóa sinh từ mật khẩu bằng PBKDF2) ---------- */
-const CHECK = 'kho-ca-nhan-ok', ITER = 600000, AUTO_LOCK = 5 * 60 * 1000;
+const CHECK = 'kho-ca-nhan-ok', ITER = 600000, AUTO_LOCK = 60 * 1000;
 const te = new TextEncoder(), td = new TextDecoder();
 const b64 = buf => { let s = ''; new Uint8Array(buf).forEach(c => s += String.fromCharCode(c)); return btoa(s); };
 const unb64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
@@ -765,7 +766,7 @@ async function viewNote(id){
   const key = await ensureKey(); if (!key) return;
   if (!it.enc){ await sealNotes(); save(); }
   let text;
-  try { text = await decText(key, it.enc); } catch (e) { toast('Không giải mã được ghi chú này'); return; }
+  try { text = await decText(key, it.enc); } catch (e) { toast('Không giải mã được ghi chú này'); if (!edit) lockNow(); return; }
   noteId = id; noteText = text; $('#ntTitle').textContent = it.title; $('#ntBody').textContent = text || '(Ghi chú trống)';
   $('#ntx').showModal();
 }
@@ -777,8 +778,7 @@ function downloadNote(){
   a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
 }
 $('#ntX').onclick = () => $('#ntx').close();
-$('#ntx').addEventListener('close', () => { noteText = ''; $('#ntBody').textContent = ''; });
-$('#ntLock').onclick = () => { lockNow(); toast('Đã khóa ghi chú'); };
+$('#ntx').addEventListener('close', () => { noteText = ''; $('#ntBody').textContent = ''; if (!edit) lockNow(); });
 $('#ntDl').onclick = downloadNote;
 $('#ntCopy').onclick = async () => {
   try { await navigator.clipboard.writeText(noteText); toast('Đã sao chép'); } catch (e) { toast('Không sao chép được'); }
@@ -788,9 +788,10 @@ async function openLink(i){
   const l = (state.profile.links || [])[i]; if (!l) return;
   const key = await ensureKey(); if (!key) return;
   if (!l.enc){ await sealNotes(); save(); }
-  let url; try { url = safeUrl(await decText(key, l.enc)); } catch (e) { toast('Không giải mã được liên kết'); return; }
-  if (!url){ toast('Link không hợp lệ'); return; }
+  let url; try { url = safeUrl(await decText(key, l.enc)); } catch (e) { toast('Không giải mã được liên kết'); if (!edit) lockNow(); return; }
+  if (!url){ toast('Link không hợp lệ'); if (!edit) lockNow(); return; }
   if (!window.open(url, '_blank', 'noopener')) toast('Trình duyệt chặn cửa sổ mới, hãy cho phép rồi bấm lại');
+  if (!edit) lockNow();
 }
 async function openProfile(){
   const key = await ensureKey(); if (!key) return;
