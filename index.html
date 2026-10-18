@@ -232,6 +232,9 @@ dialog.wide{max-width:min(980px,96vw)}
 .player{aspect-ratio:16/9;width:100%;background:#000;border:0;display:block;border-radius:12px;box-shadow:0 0 40px -10px rgba(139,92,246,.6)}
 .lbimg{display:block;max-width:100%;max-height:78vh;margin:0 auto;object-fit:contain;border-radius:12px;box-shadow:0 20px 60px -20px rgba(0,0,0,.8)}
 .lbnav{display:flex;justify-content:space-between;gap:8px;align-items:center;margin-top:10px}
+/* Mở hộp thoại thì trang chủ đứng yên, chỉ cuộn bên trong hộp */
+html.noscroll{overflow:hidden;scrollbar-gutter:stable}
+dialog{overscroll-behavior:contain}
 /* Hộp xem ảnh: vừa khít màn hình, không cần cuộn */
 #lbx{overflow:hidden}
 #lbx[open]{display:flex;flex-direction:column;max-height:calc(100vh - 20px);max-height:calc(100dvh - 20px)}
@@ -324,7 +327,7 @@ footer{padding:0 0 36px;color:var(--muted);font-size:14px}
     <h3>Ghi chú dạng txt</h3>
     <ul><li>Bật <b>Chỉnh sửa</b>, ở mục Tệp bấm <b>Thêm ghi chú (txt)</b>, đặt tên và viết nội dung. Bạn có thể tạo nhiều ghi chú, mỗi ghi chú là một tệp txt riêng.</li>
     <li>Nội dung ghi chú được <b>mã hóa bằng mật khẩu</b> (AES-256) ngay trên máy bạn, rồi mới lưu vào data.json. Muốn đọc phải nhập đúng mật khẩu. Lần đầu bấm Chỉnh sửa hoặc xem ghi chú, trang sẽ yêu cầu bạn đặt mật khẩu. Cùng mật khẩu này dùng để mở chế độ <b>Chỉnh sửa</b>.</li>
-    <li>Bấm vào tên ghi chú để đọc, sao chép hoặc tải về dạng .txt. Ghi chú, hướng dẫn và liên kết tự khóa ngay khi bạn xem xong; chế độ Chỉnh sửa khóa ngay khi bấm Xong chỉnh sửa (hoặc sau 1 phút không thao tác). Nút Cách lưu trữ và các nút liên kết ở đầu trang (như GitHub) cũng cần mật khẩu; địa chỉ của các liên kết này được mã hóa.</li>
+    <li>Bấm vào tên ghi chú để đọc, sao chép hoặc tải về dạng .txt. Ghi chú, hướng dẫn và liên kết tự khóa ngay khi bạn xem xong; chế độ Chỉnh sửa khóa ngay khi bấm Xong chỉnh sửa (hoặc sau 5 phút không thao tác). Nút Cách lưu trữ và các nút liên kết ở đầu trang (như GitHub) cũng cần mật khẩu; địa chỉ của các liên kết này được mã hóa.</li>
     <li>Quên mật khẩu thì không có cách nào lấy lại nội dung ghi chú, hãy nhớ kỹ hoặc cất ở nơi an toàn.</li></ul>
     <h3>Hình ảnh</h3>
     <ul><li>Bật <b>Chỉnh sửa</b>, bấm <b>Thêm hình ảnh</b> rồi chọn ảnh từ máy, hoặc chụp ảnh mới bằng điện thoại. Có thể chọn nhiều ảnh cùng lúc.</li>
@@ -883,7 +886,7 @@ async function submitImage(f, fd, it, sec){
 }
 
 /* ---------- Mã hóa ghi chú (AES-256-GCM, khóa sinh từ mật khẩu bằng PBKDF2) ---------- */
-const CHECK = 'kho-ca-nhan-ok', ITER = 600000, AUTO_LOCK = 60 * 1000, SEC_LOCK = 5 * 60 * 1000;
+const CHECK = 'kho-ca-nhan-ok', ITER = 600000, AUTO_LOCK = 5 * 60 * 1000, SEC_LOCK = 5 * 60 * 1000;
 const te = new TextEncoder(), td = new TextDecoder();
 const b64 = buf => { let s = ''; new Uint8Array(buf).forEach(c => s += String.fromCharCode(c)); return btoa(s); };
 const unb64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
@@ -1179,6 +1182,14 @@ $('#importFile').onchange = e => {
   };
   r.readAsText(f); e.target.value = '';
 };
+
+/* Khóa cuộn trang nền khi có hộp thoại đang mở */
+(function(){
+  const dl = document.querySelectorAll('dialog'), root = document.documentElement;
+  const sync = () => root.classList.toggle('noscroll', [...dl].some(d => d.open));
+  const mo = new MutationObserver(sync);
+  dl.forEach(d => mo.observe(d, { attributes:true, attributeFilter:['open'] }));
+})();
 
 /* ---------- Khởi động ---------- */
 (async function(){
