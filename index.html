@@ -232,6 +232,11 @@ dialog.wide{max-width:min(980px,96vw)}
 .player{aspect-ratio:16/9;width:100%;background:#000;border:0;display:block;border-radius:12px;box-shadow:0 0 40px -10px rgba(139,92,246,.6)}
 .lbimg{display:block;max-width:100%;max-height:78vh;margin:0 auto;object-fit:contain;border-radius:12px;box-shadow:0 20px 60px -20px rgba(0,0,0,.8)}
 .lbnav{display:flex;justify-content:space-between;gap:8px;align-items:center;margin-top:10px}
+/* Thanh bộ lọc dính dưới thanh tab; tiêu đề hộp thoại dính trên đầu hộp */
+.stickybar{position:sticky;top:var(--tbh,150px);z-index:15;margin:0 -18px 14px;padding:12px 18px 0;background:rgba(9,15,32,.9);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-bottom:1px solid var(--rule)}
+.stickybar .chips{margin-bottom:10px}
+dialog .dh{position:sticky;top:0;z-index:5;background:linear-gradient(90deg,rgba(34,211,238,.10),rgba(139,92,246,.08),transparent),#0a1122}
+@media(max-width:560px){.stickybar{position:static;margin:0 0 14px;padding:0;background:none;border:0;-webkit-backdrop-filter:none;backdrop-filter:none}}
 /* Mở hộp thoại thì trang chủ đứng yên, chỉ cuộn bên trong hộp */
 html.noscroll{overflow:hidden;scrollbar-gutter:stable}
 dialog{overscroll-behavior:contain}
@@ -604,7 +609,7 @@ function renderPanel(){
       '<button class="btn sm danger" data-act="reset">Về dữ liệu gốc</button></div>';
   }
   const LOCK_IC = '<svg class="ic" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M17 9V7a5 5 0 0 0-10 0v2H5v12h14V9h-2zm-8-2a3 3 0 0 1 6 0v2H9V7z"/></svg>';
-  h += '<div class="branch"><div class="seg" role="group" aria-label="Nhánh của mục ' + esc(cfg.label) + '">' +
+  h += '<div class="stickybar"><div class="branch"><div class="seg" role="group" aria-label="Nhánh của mục ' + esc(cfg.label) + '">' +
     '<button data-act="branch" data-v="pub" aria-pressed="' + (branch === 'pub') + '">Công khai<span class="n">' + typeOf(t).length + '</span></button>' +
     '<button data-act="branch" data-v="sec" aria-pressed="' + (branch === 'sec') + '">' + LOCK_IC + 'Bảo mật<span class="n">' + secOf(t).length + '</span></button></div></div>';
   if (branch === 'sec'){
@@ -623,6 +628,7 @@ function renderPanel(){
     h += '<div class="chips" role="group" aria-label="Lọc theo thẻ"><button class="chip" data-act="tag" data-v="" aria-pressed="' + (!tag) + '">Tất cả</button>' +
       tagSet.map(x => '<button class="chip" data-act="tag" data-v="' + esc(x) + '" aria-pressed="' + (tag === x) + '">' + esc(x) + '</button>').join('') + '</div>';
   }
+  h += '</div>';
   if (t === 'learn' && all.length){
     const n = s => all.filter(i => i.status === s).length;
     const avg = Math.round(all.reduce((s, i) => s + (+i.progress || 0), 0) / all.length);
@@ -1182,6 +1188,14 @@ $('#importFile').onchange = e => {
   };
   r.readAsText(f); e.target.value = '';
 };
+
+/* Đo chiều cao thanh tab để thanh bộ lọc dính ngay bên dưới */
+(function(){
+  const tb = document.querySelector('.tabbar'); if (!tb) return;
+  const set = () => document.documentElement.style.setProperty('--tbh', tb.offsetHeight + 'px');
+  set(); addEventListener('resize', set);
+  if (window.ResizeObserver) new ResizeObserver(set).observe(tb);
+})();
 
 /* Khóa cuộn trang nền khi có hộp thoại đang mở */
 (function(){
