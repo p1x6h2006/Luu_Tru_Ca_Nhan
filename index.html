@@ -284,6 +284,7 @@ footer{padding:0 0 36px;color:var(--muted);font-size:14px}
 #swordFly{position:fixed;inset:0;z-index:25;pointer-events:none;overflow:hidden}
 #swordFly svg{position:absolute;left:0;top:0;overflow:visible;will-change:transform;
   filter:drop-shadow(0 0 7px rgba(34,211,238,.9)) drop-shadow(0 0 16px rgba(139,92,246,.6))}
+#swordFly canvas{position:absolute;left:0;top:0;width:100%;height:100%}
 </style>
 </head>
 <body>
@@ -1307,30 +1308,87 @@ $('#importFile').onchange = e => {
 </script>
 
 <script>
-/* Logo: đĩa tròn xoay 1 vòng, hai thanh kiếm bay ra theo quỹ đạo ngẫu nhiên khắp trang (mũi kiếm luôn hướng về phía bay) rồi quay về. Chỉ là hiệu ứng trang trí. */
+/* Logo: đĩa tròn xoay 1 vòng, hai thanh kiếm bay ra theo quỹ đạo ngẫu nhiên khắp trang (mũi kiếm luôn hướng về phía bay, có vệt sáng phía sau); rời vòng tròn 1 giây thì mỗi kiếm phân thân thêm 1 và bay đường riêng; bản thể đứng chờ trước logo, phân thân về nhập vào rồi bản thể mới lùi lấy đà và đâm vào logo. Chỉ là hiệu ứng trang trí. */
 (function(){
   var REST_MS   = 5000;   // nghỉ bao lâu sau khi kiếm về thì bay lượt mới
-  var SPEED     = 560;    // tốc độ bay trung bình (px/giây): nhỏ hơn = chậm hơn
+  var SPEED     = 1000;    // tốc độ bay trung bình (px/giây): nhỏ hơn = chậm hơn
   var MIN_MS    = 6500;   // thời gian bay tối thiểu
-  var MAX_MS    = 20000;  // thời gian bay tối đa
+  var MAX_MS    = 32000;  // thời gian bay tối đa
   var LAUNCH    = .6;     // tốc độ lúc rời vòng tròn so với tốc độ bay đều (trước là 0.1; 1 = không chậm lúc đầu)
+  var TRAIL_MS  = 700;    // vệt sáng sau kiếm kéo dài bao lâu rồi mờ hẳn (ms)
+  var SPLIT_DELAY = 1000; // rời khỏi vòng tròn bao lâu (ms) thì mới phân thân
+  var HOLD      = 1.35;   // bản thể đứng chờ cách tâm logo bao xa (nhân với cỡ kiếm)
+  var PULL      = .42;    // lùi lại lấy đà bao xa trước khi đâm (nhân với cỡ kiếm)
+  var WAIT_MS   = 900;    // bản thể chờ phân thân về sau khi tới vị trí chờ (ms)
+  var WIND_MS   = 320;    // lùi lại lấy đà trước khi đâm (ms)
+  var THRUST_MS = 200;    // thời gian cú đâm vào logo (ms): càng nhỏ càng dứt khoát
   var THICK     = .68;    // độ dày kiếm khi bay so với bản gốc (trước là 0.5; 1 = dày nguyên bản)
   if (matchMedia('(prefers-reduced-motion:reduce)').matches) return;
   var layer = document.getElementById('swordFly'); if (!layer) return;
   var logos = [].slice.call(document.querySelectorAll('svg.logo'));
   if (!logos.length) return;
+
+  /* Vệt sáng: canvas nằm dưới các thanh kiếm, vẽ đường mờ dần theo vị trí kiếm vừa đi qua (cộng sáng 'lighter'). */
+  var cv = document.createElement('canvas'); layer.insertBefore(cv, layer.firstChild);
+  var ctx = cv.getContext('2d'), trails = [], dirty = false;
+  function fit(){ var d = Math.min(2, window.devicePixelRatio || 1); cv.width = Math.round(innerWidth * d); cv.height = Math.round(innerHeight * d); ctx.setTransform(d, 0, 0, d, 0, 0); dirty = true; }
+  fit(); addEventListener('resize', fit);
+  function newTrail(r, g, b){ var T = { pts: [], r: r, g: g, b: b, live: true }; trails.push(T); return T; }
+  function pushTrail(T, x, y, w, q, now){ T.pts.push({ x: x, y: y, w: w, q: q, t: now }); }
+  function drawTrails(now){
+    if (!trails.length){ if (dirty){ ctx.clearRect(0, 0, innerWidth, innerHeight); dirty = false; } return; }
+    ctx.clearRect(0, 0, innerWidth, innerHeight); dirty = true;
+    ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'butt';
+    for (var n = trails.length - 1; n >= 0; n--){
+      var T = trails[n], P = T.pts, k;
+      while (P.length && now - P[0].t > TRAIL_MS) P.shift();
+      if (!P.length && !T.live){ trails.splice(n, 1); continue; }
+      var rgb = T.r + ',' + T.g + ',' + T.b;
+      for (k = 1; k < P.length; k++){
+        var p0 = P[k - 1], p1 = P[k], u = 1 - (now - p1.t) / TRAIL_MS;
+        if (u <= 0 || p1.q <= .01) continue;
+        ctx.beginPath(); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y);
+        ctx.strokeStyle = 'rgba(' + rgb + ',' + (.22 * u * u * p1.q).toFixed(3) + ')'; ctx.lineWidth = p1.w * 2.4 * u + 1; ctx.stroke();   // quầng sáng rộng, rất nhẹ
+        ctx.strokeStyle = 'rgba(255,255,255,' + (.42 * u * u * p1.q).toFixed(3) + ')'; ctx.lineWidth = p1.w * .55 * u + .6; ctx.stroke();   // lõi sáng mảnh
+      }
+    }
+    ctx.globalCompositeOperation = 'source-over';
+  }
+  function ring(x, y, d){        // sóng xung kích nhỏ tại điểm tách / hợp thể
+    var r = document.createElement('div'); r.className = 'lg-ring';
+    r.style.cssText = 'left:' + (x - d / 2) + 'px;top:' + (y - d / 2) + 'px;width:' + d + 'px;height:' + d + 'px';
+    layer.appendChild(r); setTimeout(function(){ r.remove(); }, 1000);
+  }
+  function sparks(x, y, n, d){   // chùm tia lửa nhỏ tại điểm phân thân / hợp thể
+    for (var i = 0; i < n; i++){
+      var sp = document.createElement('div'); sp.className = 'lg-spark';
+      sp.style.left = x + 'px'; sp.style.top = y + 'px'; layer.appendChild(sp);
+      var ang = Math.random() * Math.PI * 2, dist = d * (.5 + Math.random());
+      var an = sp.animate([{ transform: 'translate(0,0) scale(1)', opacity: 1 },
+                           { transform: 'translate(' + Math.cos(ang) * dist + 'px,' + Math.sin(ang) * dist + 'px) scale(.1)', opacity: 0 }],
+                          { duration: 350 + Math.random() * 300, easing: 'cubic-bezier(.1,.7,.3,1)' });
+      an.onfinish = function(e){ e.remove(); }.bind(null, sp);
+    }
+  }
   var BASE = [45, -45], NS = 'http://www.w3.org/2000/svg';
   function smooth(x){ x = x < 0 ? 0 : x > 1 ? 1 : x; return x * x * (3 - 2 * x); }
   function inOutSine(x){ return .5 - .5 * Math.cos(Math.PI * (x < 0 ? 0 : x > 1 ? 1 : x)); }
   function shortest(d){ d = d % 360; if (d > 180) d -= 360; if (d < -180) d += 360; return d; }
 
-  var PROF = (function(){        // đồ thị tốc độ: rời đi chậm, bay đều, rồi tăng tốc lao thẳng vào logo
+  var PROF = (function(){        // đồ thị tốc độ: rời đi chậm, bay đều, rồi lao tới chỗ chờ và phanh gấp (cú đâm vào logo tính riêng)
     var N = 240, a = [0], s = 0, k, t, v;
-    for (k = 1; k <= N; k++){ t = (k - .5) / N; v = (LAUNCH + (1 - LAUNCH) * smooth(t / .1)) * (1 + 1.5 * smooth((t - .76) / .24)); s += v; a.push(s); }
+    for (k = 1; k <= N; k++){ t = (k - .5) / N; v = (LAUNCH + (1 - LAUNCH) * smooth(t / .1)) * (1 + .5 * smooth((t - .62) / .25)) * (1 - .92 * smooth((t - .93) / .07)); s += v; a.push(s); }
     for (k = 0; k <= N; k++) a[k] /= s;
     return a;
   })();
   function prog(t){ t = t < 0 ? 0 : t > 1 ? 1 : t; var f = t * 240, i = Math.floor(f); return i >= 240 ? 1 : PROF[i] + (PROF[i + 1] - PROF[i]) * (f - i); }
+  var PROF2 = (function(){       // đồ thị tốc độ của phân thân: bay đều rồi tăng tốc dồn dập, lao thẳng vào bản thể (không giảm tốc)
+    var N = 240, a = [0], sm = 0, k, t, v;
+    for (k = 1; k <= N; k++){ t = (k - .5) / N; v = (.5 + .5 * smooth(t / .12)) * (1 + 4 * smooth((t - .7) / .3)); sm += v; a.push(sm); }
+    for (k = 0; k <= N; k++) a[k] /= sm;
+    return a;
+  })();
+  function progL(t){ t = t < 0 ? 0 : t > 1 ? 1 : t; var f = t * 240, i = Math.floor(f); return i >= 240 ? 1 : PROF2[i] + (PROF2[i + 1] - PROF2[i]) * (f - i); }
 
   var cur = null, t0 = 0, dur = 0, last = 0, nextAt = performance.now() + 1500, sw = [];
 
@@ -1351,13 +1409,15 @@ $('#importFile').onchange = e => {
   /* Quỹ đạo: mô phỏng "lái" có nhìn trước. Kiếm uốn lượn nhẹ nhàng; khi tiến gần mép màn hình, lực đẩy tăng dần
      nên kiếm bẻ cua từ xa theo bán kính rộng (độ cong luôn bị giới hạn và đổi từ từ), không bao giờ chạm mép rồi bật ra.
      Đoạn cuối chuyển sang chế độ "về nhà": hướng thẳng vào logo. */
-  function buildPath(L, W, H, F, a0){
+  function buildPath(L, W, H, F, a0, opt){
+    opt = opt || {};
+    var T = opt.target || L, S0 = opt.start || L;   // mặc định: đi từ logo và về logo; phân thân: đi từ chỗ tách tới điểm hợp thể
     var m = F * .55,                                   // lề an toàn quanh màn hình
         R = Math.max(56, Math.min(W, H) * .15),        // bán kính cua nhỏ nhất: càng lớn thì cua càng rộng và mượt
         K = 1 / R, Z = R * 2.6,                        // K: độ cong tối đa; Z: bề rộng vùng bắt đầu né tường
         DS = 6, DK = K * DS / (R * .9);                // bước mô phỏng; tốc độ đổi độ cong tối đa (không bẻ lái giật)
     var xl = m, xr = W - m, yt = m, yb = H - m;
-    var lo = 1.3 * (W + H), hi = 2.3 * (W + H);
+    var lo = opt.lo || 3.2 * (W + H), hi = opt.hi || 5.7 * (W + H), HD = R * (opt.hk || 3.4);
 
     function mkAt(S, cum){
       var total = cum[cum.length - 1];
@@ -1371,14 +1431,14 @@ $('#importFile').onchange = e => {
     }
 
     function run(){
-      var x = L.x, y = L.y, a = a0;                                                              // rời logo đúng theo hướng mũi kiếm
+      var x = S0.x, y = S0.y, a = a0;                                                              // rời logo đúng theo hướng mũi kiếm
       var k = 0, s = 0, bias = Math.random() < .5 ? -1 : 1;                                    // bias: bên rẽ khi đối mặt thẳng với tường
       var l1 = R * (2.2 + Math.random() * 1.6), l2 = R * (1 + Math.random() * .9);
       var p1 = Math.random() * 6.2832, p2 = Math.random() * 6.2832;
       var goal = lo + Math.random() * (hi - lo), homing = false, ok = false;
       var S = [{ x: x, y: y }], cum = [0], worst = 1e9, cap = Math.ceil(goal * 2.4 / DS) + 600, n, t;
       for (n = 0; n < cap; n++){
-        var dl = Math.hypot(L.x - x, L.y - y);
+        var dl = Math.hypot(T.x - x, T.y - y);
         if (homing && dl < DS * 1.5){ ok = true; break; }
         var hx = Math.cos(a), hy = Math.sin(a), vx = 0, vy = 0;
         t = (Z - (x - xl)) / Z; if (t > 0) vx += Math.min(t, 1);          // lực đẩy khỏi 4 mép, mạnh dần khi càng gần
@@ -1386,13 +1446,13 @@ $('#importFile').onchange = e => {
         t = (Z - (y - yt)) / Z; if (t > 0) vy += Math.min(t, 1);
         t = (Z - (yb - y)) / Z; if (t > 0) vy -= Math.min(t, 1);
         var vm = Math.hypot(vx, vy);
-        if (!homing && s >= goal && dl > 3.4 * R && vm < .5){                                // đủ dài, đang ở chỗ thoáng: bắt đầu về logo
+        if (!homing && s >= goal && dl > HD && vm < .5){                                // đủ dài, đang ở chỗ thoáng: bắt đầu về logo
           var qx = x + hx * 3 * R, qy = y + hy * 3 * R;                                      // nhưng chỉ khi đường phía trước cũng còn thoáng
           if (qx > m * .6 && qx < W - m * .6 && qy > m * .6 && qy < H - m * .6) homing = true;
         }
         var base, wallw;
         if (homing){
-          var diff = Math.atan2(L.y - y, L.x - x) - a; diff = Math.atan2(Math.sin(diff), Math.cos(diff));
+          var diff = Math.atan2(T.y - y, T.x - x) - a; diff = Math.atan2(Math.sin(diff), Math.cos(diff));
           base = K * Math.max(-1, Math.min(1, diff / .6)); wallw = 0;
         } else {
           base = K * .5 * (.65 * Math.sin(s / l1 + p1) + .35 * Math.sin(s / l2 + p2));      // uốn lượn tự do
@@ -1406,7 +1466,7 @@ $('#importFile').onchange = e => {
         if (s > 2 * R && !(homing && dl < 2 * R)) worst = Math.min(worst, x, W - x, y, H - y);
       }
       if (!ok) return null;
-      S.push({ x: L.x, y: L.y }); cum.push(cum[cum.length - 1] + Math.hypot(L.x - x, L.y - y));
+      S.push({ x: T.x, y: T.y }); cum.push(cum[cum.length - 1] + Math.hypot(T.x - x, T.y - y));
       return { total: cum[cum.length - 1], at: mkAt(S, cum), worst: worst };
     }
 
@@ -1416,6 +1476,7 @@ $('#importFile').onchange = e => {
       if (!best || c.worst > best.worst) best = c;
       if (c.worst >= F * .3) break;
     }
+    if (!best && opt.target){ var d2 = Math.hypot(T.x - S0.x, T.y - S0.y) || 1; best = { total: d2, at: function(s){ var f = s < 0 ? 0 : s > d2 ? 1 : s / d2; return { x: S0.x + (T.x - S0.x) * f, y: S0.y + (T.y - S0.y) * f }; } }; }
     if (!best){                                        // dự phòng hiếm gặp: đường thẳng ra giữa màn hình rồi về
       var q = { x: W / 2, y: H / 2 }, d1 = Math.hypot(q.x - L.x, q.y - L.y) || 1;
       best = { total: 2 * d1, at: function(s){ s = s < 0 ? 0 : s > 2 * d1 ? 2 * d1 : s; var f = s <= d1 ? s / d1 : 2 - s / d1; return { x: L.x + (q.x - L.x) * f, y: L.y + (q.y - L.y) * f }; } };
@@ -1427,13 +1488,25 @@ $('#importFile').onchange = e => {
     cur = pickLogo(); t0 = now; sw = [];
     var c = centre(cur), W = innerWidth, H = innerHeight, F = Math.max(96, c.s);
     var logoSw = cur.querySelectorAll('.lg-sw');
+    var HL = F * HOLD, sy = (c.y + HL * .72 > H - F * .4) ? -1 : 1;   // sát đáy màn hình thì đứng chờ phía trên logo thay vì phía dưới
     for (var i = 0; i < 2; i++){
       logoSw[i].style.visibility = 'hidden';
       var s = document.createElementNS(NS, 'svg');
       s.setAttribute('viewBox', '0 0 512 512');
       var u = document.createElementNS(NS, 'use'); u.setAttribute('href', '#lg-sword');
       s.appendChild(u); layer.appendChild(s);
-      sw.push({ el: s, use: u, path: buildPath(c, W, H, F, (BASE[i] - 90) * Math.PI / 180), ang: BASE[i] });   // mũi kiếm hướng lên: góc bay = góc kiếm - 90°
+      var ra = BASE[i] * Math.PI / 180, Wi = { x: c.x - Math.sin(ra) * HL, y: c.y + sy * Math.cos(ra) * HL };   // chỗ chờ: kiếm 45° đứng bên trái, kiếm -45° đứng bên phải
+      var o = { el: s, use: u, path: buildPath(c, W, H, F, (BASE[i] - 90) * Math.PI / 180, { target: Wi }), ang: BASE[i],   // mũi kiếm hướng lên: góc bay = góc kiếm - 90°
+                tLeft: null, spawned: false, merged: false, Q: null, fl: -1e9, side: i ? -1 : 1 };
+      var cs = document.createElementNS(NS, 'svg'); cs.setAttribute('viewBox', '0 0 512 512');   // phân thân: ẩn cho tới khi kiếm rời vòng tròn
+      var cu = document.createElementNS(NS, 'use'); cu.setAttribute('href', '#lg-sword');
+      cs.appendChild(cu); cs.style.opacity = 0;
+      cs.style.filter = 'hue-rotate(38deg) drop-shadow(0 0 7px rgba(167,139,250,.95)) drop-shadow(0 0 16px rgba(236,72,153,.55))';
+      layer.appendChild(cs);
+      o.cl = { el: cs, use: cu, ang: BASE[i] };
+      o.tr = newTrail(34, 211, 238); o.ctr = newTrail(167, 139, 250);
+      o.phase = 0; o.sW = o.path.total; o.Wp = Wi;   // Wp: vị trí chờ bên cạnh logo
+      sw.push(o);
     }
     var len = Math.max(sw[0].path.total, sw[1].path.total);
     dur = Math.min(MAX_MS, Math.max(MIN_MS, len / SPEED * 1000));
@@ -1460,7 +1533,7 @@ $('#importFile').onchange = e => {
     var c = centre(cur), logoSw = cur.querySelectorAll('.lg-sw');
     logoSw[0].style.visibility = logoSw[1].style.visibility = '';
     setSpin(cur, 0);
-    sw.forEach(function(o){ o.el.remove(); }); sw = [];
+    sw.forEach(function(o){ o.el.remove(); o.cl.el.remove(); o.tr.live = false; o.ctr.live = false; }); sw = [];
     cur.classList.remove('flash', 'hit'); void cur.getBoundingClientRect(); cur.classList.add('flash', 'hit');   // đôi kiếm bắt chéo bật ra từ điểm va chạm
     impact(c);
     cur = null; nextAt = now + REST_MS;
@@ -1469,36 +1542,117 @@ $('#importFile').onchange = e => {
     requestAnimationFrame(frame);
     var dt = now - last; last = now;
     if (dt > 100) dt = 100;                                      // máy giật lag thì không để góc xoay bị nhảy
-    if (!cur){ if (now < nextAt) return; begin(now); }
-    var t = (now - t0) / dur;
-    if (t >= 1){ end(now); return; }
+    if (!cur){ if (now < nextAt){ drawTrails(now); return; } begin(now); }
+    var t = (now - t0) / dur, ft = t > 1 ? 1 : t;                // ft: tiến độ giai đoạn bay (0 → 1)
     var c = centre(cur), F = sw.F;
-    var env = smooth(t / .14) * smooth((1 - t) / .14);          // 0 → 1 → 0: to dần khi bay ra, nhỏ lại khi về
-    var size = c.s + (F - c.s) * env;
-    var u = prog(t);                                             // chậm lúc rời đi, tăng tốc dần khi lao về logo
-    var follow = smooth(t);                                      // nếu trang bị cuộn khi đang bay, kiếm vẫn về đúng logo
+    var u = prog(ft);                                            // chậm lúc rời đi, giảm tốc khi tới chỗ chờ
+    var follow = smooth(ft);                                     // nếu trang bị cuộn khi đang bay, kiếm vẫn bám theo logo
     var ox = (c.x - sw.c0.x) * follow, oy = (c.y - sw.c0.y) * follow;
-    setSpin(cur, 360 * inOutSine(t));
+    setSpin(cur, 360 * inOutSine(ft));
+    var kt = 1 - Math.exp(-dt / 1000 * (4 + 18 * smooth(ft / .3)));
+    var left = 0;
     for (var i = 0; i < 2; i++){
-      var o = sw[i], P = o.path, s = P.total * u;
-      var a = P.at(s - 36), b = P.at(s + 36);
-      var heading = Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI + 90;   // +90° vì mũi kiếm hướng lên trên
-      var target = heading;                                        // mũi kiếm luôn hướng về phía bay, kể cả lúc đâm vào logo
-      o.ang += shortest(target - o.ang) * (1 - Math.exp(-dt / 1000 * (4 + 18 * smooth(t / .3))));
-      var p = P.at(s);
-      var sx = 1 - (1 - THICK) * smooth(t / .12);                // kiếm thon lại còn THICK (68%) bề ngang khi bay; tăng THICK để kiếm dày hơn
-      o.use.setAttribute('transform', 'translate(256 256) scale(' + sx.toFixed(3) + ' 1) translate(-256 -256)');
-      o.el.style.opacity = 1 - smooth((t - .95) / .05);          // chạm tới tâm thì biến mất vào logo
+      var o = sw[i], P = o.path, cl = o.cl;
+      if (o.phase === 4) continue;
+      left++;
+      /* Các giai đoạn của mỗi bản thể: 0 bay · 1 đứng chờ trước logo · 2 lùi lấy đà · 3 đâm vào logo · 4 xong */
+      if (o.phase === 0 && t >= 1){ o.phase = 1; o.tw = now; o.fl = now; o.landed = true; if (!o.Q){ o.spawned = true; o.merged = true; o.mergeAt = now; } }
+      if (o.phase === 1 && o.merged && now >= o.mergeAt + 160){ o.phase = 2; o.tp = now; }   // phân thân đã nhập vào: chuẩn bị đâm
+      if (o.phase === 2 && now - o.tp >= WIND_MS){ o.phase = 3; o.tc = now; }
+      var rel = { x: o.Wp.x - sw.c0.x, y: o.Wp.y - sw.c0.y };   // vị trí chờ so với tâm logo
+      var len = Math.hypot(rel.x, rel.y) || 1, ux = -rel.x / len, uy = -rel.y / len;   // (ux,uy): hướng từ chỗ chờ tới logo
+      var s = o.sW * u, p = P.at(s), size = c.s + (F - c.s) * smooth(ft / .14), tt = 0, px, py, target;
+      if (o.phase === 0){
+        px = p.x + ox; py = p.y + oy;
+        var a = P.at(s - 36), b = P.at(s + 36);
+        target = Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI + 90;   // +90° vì mũi kiếm hướng lên trên
+      } else {
+        target = Math.atan2(uy, ux) * 180 / Math.PI + 90;                 // mũi kiếm chĩa thẳng vào logo
+        var dist = len;
+        if (o.phase === 1){ dist = len + Math.sin((now - o.tw) / 160) * 3; }   // lơ lửng nhẹ khi chờ
+        else if (o.phase === 2){ tt = Math.min(1, (now - o.tp) / WIND_MS); dist = len + F * PULL * (1 - Math.pow(1 - tt, 3)); }   // lùi lại lấy đà
+        else {
+          tt = Math.min(1, (now - o.tc) / THRUST_MS);
+          dist = (len + F * PULL) * (1 - tt * tt * tt);                      // tăng tốc dồn dập rồi đâm thẳng vào tâm
+          size = c.s + (F - c.s) * (1 - smooth((tt - .5) / .5));
+          if (tt >= 1){                                                    // trúng đích: tia lửa + logo giật
+            o.phase = 4; o.el.remove(); cl.el.remove(); o.tr.live = false; o.ctr.live = false;
+            sparks(c.x, c.y, 16, c.s * 1.1); ring(c.x, c.y, c.s * 2.2);
+            cur.classList.remove('flash'); void cur.getBoundingClientRect(); cur.classList.add('flash');
+            continue;
+          }
+        }
+        px = c.x - ux * dist; py = c.y - uy * dist;
+        if (o.merged && o.kx !== undefined){ var kk = Math.max(0, 1 - (now - o.mergeAt) / 160); kk *= kk; px += o.kx * F * .12 * kk; py += o.ky * F * .12 * kk; }   // giật theo hướng phân thân lao vào
+      }
+      o.ang += shortest(target - o.ang) * kt;
+      if (o.landed){ o.landed = false; sparks(px, py, 8, size * .5); ring(px, py, size * .9); }   // dừng khựng tại chỗ chờ: lóe sáng
+      var sx = 1 - (1 - THICK) * smooth(ft / .12);                // kiếm thon lại còn THICK (68%) bề ngang khi bay; tăng THICK để kiếm dày hơn
+      var tf = 'translate(256 256) scale(' + sx.toFixed(3) + ' 1) translate(-256 -256)';
+      var mo = o.phase === 3 ? 1 - smooth((tt - .9) / .1) : 1;     // chạm tới tâm thì biến mất vào logo
+
+      /* Phân thân: rời vòng tròn được SPLIT_DELAY ms thì tách 1 bản, bay đường riêng ngẫu nhiên tới chỗ bản thể đang chờ */
+      if (o.phase === 0 && o.tLeft === null && s >= c.s * .42) o.tLeft = now;
+      if (o.phase === 0 && !o.spawned && o.tLeft !== null && now - o.tLeft >= SPLIT_DELAY){
+        o.spawned = true;
+        var seg = o.sW - s;
+        if (seg > 260){
+          var ha = P.at(s - 36), hb = P.at(s + 36), hd = Math.atan2(hb.y - ha.y, hb.x - ha.x);
+          o.Q = buildPath(sw.c0, innerWidth, innerHeight, F, hd + o.side * (.55 + Math.random() * .6),
+                          { start: P.at(s), target: o.Wp, lo: seg * .6, hi: seg, hk: 2.2 });
+          o.born = now; o.tA = t0 + dur + WAIT_MS + i * 150; cl.ang = o.ang;   // phân thân về tới chỗ chờ sau bản thể một nhịp
+          sparks(px, py, 8, size * .5); ring(px, py, size * .9);
+        } else { o.merged = true; o.mergeAt = now; }
+      }
+      var cq = 0, cx = px, cy = py, cA = o.ang;
+      if (o.Q){
+        var qt = Math.min(1, (now - o.born) / (o.tA - o.born)), fade = 1;
+        if (!o.merged && now >= o.tA){                              // hợp thể: phân thân nhập vào bản thể
+          o.merged = true; o.fl = now; o.mergeAt = now; o.kx = Math.sin(cl.ang * Math.PI / 180); o.ky = -Math.cos(cl.ang * Math.PI / 180);   // phân thân đâm trúng: bản thể bị đẩy giật một nhịp
+          sparks(px, py, 18, size * .7); ring(px, py, size * 1.9);
+        }
+        if (o.merged) fade = 1 - smooth((now - o.fl) / 160);
+        else {
+          var sq = o.Q.total * progL(qt), qa = o.Q.at(sq - 36), qb = o.Q.at(sq + 36), cp = o.Q.at(sq);
+          cl.ang += shortest(Math.atan2(qb.y - qa.y, qb.x - qa.x) * 180 / Math.PI + 90 - cl.ang) * kt;
+          cA = cl.ang;                                                         // mũi kiếm luôn chĩa theo hướng lao tới bản thể
+          cx = cp.x + ox; cy = cp.y + oy;
+        }
+        cq = smooth((now - o.born) / 300) * fade;
+      }
+
+      /* Quầng sáng của bản thể: lóe lúc hợp thể, nhấp nháy khi chờ, rực dần khi lấy đà và đâm */
+      var g = Math.max(0, 1 - (now - o.fl) / 380);
+      if (o.phase === 1) g = Math.max(g, .22 + .14 * Math.sin((now - o.tw) / 90));
+      else if (o.phase === 2) g = Math.max(g, .35 + .65 * tt);
+      else if (o.phase === 3) g = 1;
+      o.el.style.filter = g > .02
+        ? 'drop-shadow(0 0 ' + (7 + 12 * g).toFixed(1) + 'px rgba(255,255,255,' + (.5 + .5 * g).toFixed(2) + ')) drop-shadow(0 0 ' + (16 + 18 * g).toFixed(1) + 'px rgba(34,211,238,.9))'
+        : '';
+      o.use.setAttribute('transform', tf);
+      o.el.style.opacity = mo;
       o.el.setAttribute('width', size); o.el.setAttribute('height', size);
-      o.el.style.transform = 'translate(' + (p.x + ox - size / 2).toFixed(1) + 'px,' + (p.y + oy - size / 2).toFixed(1) + 'px) rotate(' + o.ang.toFixed(1) + 'deg)';
+      o.el.style.transform = 'translate(' + (px - size / 2).toFixed(1) + 'px,' + (py - size / 2).toFixed(1) + 'px) rotate(' + o.ang.toFixed(1) + 'deg)';
+      cl.use.setAttribute('transform', tf);
+      cl.el.style.opacity = cq;
+      cl.el.setAttribute('width', size); cl.el.setAttribute('height', size);
+      cl.el.style.transform = 'translate(' + (cx - size / 2).toFixed(1) + 'px,' + (cy - size / 2).toFixed(1) + 'px) rotate(' + cA.toFixed(1) + 'deg)';
+
+      /* Vệt sáng: bám phía sau chuôi kiếm (cú đâm có vệt đậm hơn) */
+      var dx = Math.sin(o.ang * Math.PI / 180), dy = -Math.cos(o.ang * Math.PI / 180);
+      pushTrail(o.tr, px - dx * size * .3, py - dy * size * .3, size * (o.phase === 3 ? .12 : .05), mo, now);
+      if (cq > .004) pushTrail(o.ctr, cx - Math.sin(cA * Math.PI / 180) * size * .3, cy + Math.cos(cA * Math.PI / 180) * size * .3, size * (qt > .7 ? .09 : .05), cq, now);
+      else if (o.merged && o.ctr.live) o.ctr.live = false;
     }
+    if (!left){ end(now); drawTrails(now); return; }             // cả hai bản thể đã đâm xong
+    drawTrails(now);
   }
   var hiddenAt = 0;                                              // tab bị ẩn thì tạm dừng hiệu ứng, không bị nhảy cóc khi quay lại
   document.addEventListener('visibilitychange', function(){
     if (document.hidden){ hiddenAt = performance.now(); return; }
     if (!hiddenAt) return;
     var gap = performance.now() - hiddenAt; hiddenAt = 0;
-    t0 += gap; nextAt += gap; last = performance.now();
+    t0 += gap; nextAt += gap; sw.forEach(function(o){ ['tLeft', 'born', 'fl', 'tA', 'mergeAt', 'tw', 'tp', 'tc'].forEach(function(k){ if (o[k]) o[k] += gap; }); }); last = performance.now();
   });
   requestAnimationFrame(function(n){ last = n; requestAnimationFrame(frame); });
 })();
