@@ -1357,7 +1357,7 @@ $('#importFile').onchange = e => {
 </script>
 
 <script>
-/* Logo: đĩa tròn xoay 1 vòng, hai thanh kiếm bay ra theo quỹ đạo ngẫu nhiên khắp trang (mũi kiếm luôn hướng về phía bay, có vệt sáng phía sau); rời vòng tròn 1 giây thì mỗi kiếm phân thân thêm 2 (CLONES) và mỗi phân thân bay đường riêng; bản thể đứng chờ trước logo, phân thân về nhập vào rồi bản thể mới lùi lấy đà và đâm vào logo. Chỉ là hiệu ứng trang trí. */
+/* Logo: đĩa tròn xoay 1 vòng, hai thanh kiếm bay ra theo quỹ đạo ngẫu nhiên khắp trang (mũi kiếm luôn hướng về phía bay, có vệt sáng phía sau); rời vòng tròn 1 giây thì mỗi kiếm lần lượt phân thân thêm 3 (CLONES), cách nhau 0,8 giây và mỗi phân thân bay đường riêng; bản thể đứng chờ trước logo, phân thân về nhập vào rồi bản thể mới lùi lấy đà và đâm vào logo. Chỉ là hiệu ứng trang trí. */
 (function(){
   var REST_MS   = 5000;   // nghỉ bao lâu sau khi kiếm về thì bay lượt mới
   var SPEED     = 650;     // tốc độ bay trung bình (px/giây): nhỏ hơn = chậm hơn
@@ -1366,7 +1366,9 @@ $('#importFile').onchange = e => {
   var LAUNCH    = .6;     // tốc độ lúc rời vòng tròn so với tốc độ bay đều (trước là 0.1; 1 = không chậm lúc đầu)
   var TRAIL_MS  = 520;    // vệt sáng sau kiếm kéo dài bao lâu rồi mờ hẳn (ms)
   var SPLIT_DELAY = 1000; // rời khỏi vòng tròn bao lâu (ms) thì mới phân thân
-  var CLONES    = 2;      // mỗi bản thể phân ra bao nhiêu phân thân (1-3)
+  var CLONES    = 3;      // mỗi bản thể phân ra bao nhiêu phân thân (1-3)
+  var RECALL_SLOW = 2;    // thu kiếm chậm bao nhiêu lần (1 = như cũ, 2 = chậm gấp đôi)
+  var SPAWN_GAP = 800;    // các phân thân xuất hiện lần lượt, cách nhau bao lâu (ms)
   var CLONE_GAP = 260;    // các phân thân về tới chỗ bản thể cách nhau bao lâu (ms)
   var CSTYLE = [{ f:'hue-rotate(38deg) drop-shadow(0 0 6px rgba(167,139,250,.9))', rgb:[167,139,250] },   // phân thân 1: tím
                 { f:'hue-rotate(-52deg) drop-shadow(0 0 6px rgba(244,114,182,.9))', rgb:[244,114,182] },   // phân thân 2: hồng
@@ -1459,7 +1461,7 @@ $('#importFile').onchange = e => {
       if (o.phase === 4 || o.rDone){ es += 1; continue; }
       if (o.rs === undefined){
         var pend0 = 0;
-        o.cls.forEach(function(k){ if (k.Q && !k.merged){ pend0++; k.d0 = Math.max(350, Math.min(1100, Math.hypot(k.lcx - o.lx, k.lcy - o.ly) / 2.2)); } });
+        o.cls.forEach(function(k){ if (k.Q && !k.merged){ pend0++; k.d0 = RECALL_SLOW * Math.max(350, Math.min(1100, Math.hypot(k.lcx - o.lx, k.lcy - o.ly) / 2.2)); } });
         o.rs = pend0 ? 0 : 1; o.rT = now;                                                  // 0: phân thân đang về bản thể · 1: bản thể bay về logo
       }
       var px = o.lx, py = o.ly, size = o.lsz, mo = 1, r, e;
@@ -1480,15 +1482,15 @@ $('#importFile').onchange = e => {
       if (o.rs === 1){                                                                      // đã hợp thể: bay liền một mạch vào logo theo đường chéo của riêng nó (hai kiếm cắt nhau thành chữ X)
         o.cls.forEach(function(k){ k.el.style.opacity = 0; });
         var rel = { x: o.Wp.x - sw.c0.x, y: o.Wp.y - sw.c0.y }, ln = Math.hypot(rel.x, rel.y) || 1, wx = rel.x / ln, wy = rel.y / ln;
-        if (o.sx === undefined){ o.sx = o.lx; o.sy = o.ly; o.v = 900; o.d1 = Math.max(1, Math.hypot(o.lx - c.x, o.ly - c.y)); }
+        if (o.sx === undefined){ o.sx = o.lx; o.sy = o.ly; o.v = 900 / RECALL_SLOW; o.d1 = Math.max(1, Math.hypot(o.lx - c.x, o.ly - c.y)); }
         var qx = o.sx - c.x, qy = o.sy - c.y, so = qx * wx + qy * wy, lat = Math.hypot(qx - wx * so, qy - wy * so), tx, ty;
         var join = !(so > 0 && lat < sw.F * .6);
         if (!join){ tx = c.x; ty = c.y; }                                // đã nằm trên đường chéo: lao thẳng vào tâm
         else { var jd = Math.max(sw.F * 1.3, so - Math.max(sw.F * .9, lat * 1.3)); tx = c.x + wx * jd; ty = c.y + wy * jd; }   // chưa tới: vào đường chéo từ phía xa
-        var late = now - o.rT > 1500; if (late){ tx = c.x; ty = c.y; join = false; }
-        var want = Math.atan2(ty - o.sy, tx - o.sx) * 180 / Math.PI + 90, tr = (late ? 1400 : 700) * dt / 1000;
+        var late = now - o.rT > 900; if (late){ tx = c.x; ty = c.y; join = false; }
+        var want = Math.atan2(ty - o.sy, tx - o.sx) * 180 / Math.PI + 90, tr = (late ? 1400 : 700) * dt / 1000;   // giữ nguyên tốc độ bẻ lái: bay chậm mà vẫn cua gắt thì không bị quay vòng quanh logo
         o.ang += Math.max(-tr, Math.min(tr, shortest(want - o.ang)));
-        var vt = join ? Math.min(1900, 12.2 * Math.max(70, Math.hypot(tx - o.sx, ty - o.sy) * .45)) : 1900;   // đang vào đường chéo: giảm tốc vừa đủ để bán kính cua nhỏ hơn khoảng cách tới đích, không bị quay vòng
+        var vt = Math.min(1900 / RECALL_SLOW, 12.2 * Math.max(70, Math.hypot(tx - o.sx, ty - o.sy) * .45));   // bán kính cua luôn nhỏ hơn khoảng cách tới đích   // đang vào đường chéo: giảm tốc vừa đủ để bán kính cua nhỏ hơn khoảng cách tới đích, không bị quay vòng
         o.v += (vt - o.v) * Math.min(1, dt / (vt < o.v ? 120 : 350));              // lao thẳng vào logo thì chỉ tăng tốc, không phanh
         var hd = (o.ang - 90) * Math.PI / 180, sp = o.v * dt / 1000;
         o.sx += Math.cos(hd) * sp; o.sy += Math.sin(hd) * sp;
@@ -1682,7 +1684,7 @@ $('#importFile').onchange = e => {
       if (o.phase === 4) continue;
       left++;
       /* Các giai đoạn của mỗi bản thể: 0 bay · 1 đứng chờ trước logo · 2 lùi lấy đà · 3 đâm vào logo · 4 xong */
-      if (o.phase === 0 && t >= 1){ o.phase = 1; o.tw = now; o.fl = now; o.landed = true; if (!o.hasQ){ o.spawned = true; o.merged = true; o.mergeAt = now; o.cls.forEach(function(k){ k.merged = true; }); } }
+      if (o.phase === 0 && t >= 1){ o.phase = 1; o.tw = now; o.fl = now; o.landed = true; if (!o.hasQ){ o.spawned = true; o.merged = true; o.mergeAt = now; o.cls.forEach(function(k){ k.merged = true; }); } else o.cls.forEach(function(k){ if (!k.spawned){ k.spawned = true; k.merged = true; } }); }
       if (o.phase === 1 && o.merged && now >= o.mergeAt + 160){ o.phase = 2; o.tp = now; }   // phân thân đã nhập vào: chuẩn bị đâm
       if (o.phase === 2 && now - o.tp >= WIND_MS){ o.phase = 3; o.tc = now; }
       var rel = { x: o.Wp.x - sw.c0.x, y: o.Wp.y - sw.c0.y };   // vị trí chờ so với tâm logo
@@ -1719,25 +1721,26 @@ $('#importFile').onchange = e => {
 
       /* Phân thân: rời vòng tròn được SPLIT_DELAY ms thì tách CLONES bản, mỗi bản bay đường riêng ngẫu nhiên tới chỗ bản thể đang chờ */
       if (o.phase === 0 && o.tLeft === null && s >= c.s * .42) o.tLeft = now;
-      if (o.phase === 0 && !o.spawned && o.tLeft !== null && now - o.tLeft >= SPLIT_DELAY){
-        o.spawned = true;
-        var seg = o.sW - s;
-        if (seg > 260){
-          var ha = P.at(s - 36), hb = P.at(s + 36), hd = Math.atan2(hb.y - ha.y, hb.x - ha.x);
-          for (jj = 0; jj < o.cls.length; jj++){
-            cl = o.cls[jj];
+      if (o.phase === 0 && o.tLeft !== null){
+        for (jj = 0; jj < o.cls.length; jj++){                        // mỗi SPAWN_GAP ms xuất thêm 1 phân thân
+          cl = o.cls[jj];
+          if (cl.spawned || now - o.tLeft < SPLIT_DELAY + jj * SPAWN_GAP) continue;
+          cl.spawned = true; o.hasQ = true;
+          var seg = o.sW - s;
+          if (seg > 260){
+            var ha = P.at(s - 36), hb = P.at(s + 36), hd = Math.atan2(hb.y - ha.y, hb.x - ha.x);
             cl.Q = buildPath(sw.c0, innerWidth, innerHeight, F, hd + (jj % 2 ? -o.side : o.side) * (.55 + Math.random() * .6),
                              { start: P.at(s), target: o.Wp, lo: seg * .85, hi: seg, hk: 2.2, q: cl.qc });
-            cl.born = now; cl.tA = t0 + dur + WAIT_MS + i * 150 + jj * CLONE_GAP; cl.ang = o.ang;   // phân thân về tới chỗ chờ sau bản thể một nhịp, lần lượt từng cái
-          }
-          o.hasQ = true;
-          sparks(px, py, 12, size * .5); ring(px, py, size * .9);
-        } else { o.merged = true; o.mergeAt = now; o.cls.forEach(function(k){ k.merged = true; }); }
+            cl.born = now; cl.tA = t0 + dur + WAIT_MS + i * 150 + jj * CLONE_GAP; cl.ang = o.ang;
+            sparks(px, py, 12, size * .5); ring(px, py, size * .9);
+          } else { cl.merged = true; }
+        }
       }
       if (o.hasQ){
         var allIn = true;
         for (jj = 0; jj < o.cls.length; jj++){
           cl = o.cls[jj];
+          if (!cl.Q){ if (!cl.merged) allIn = false; continue; }     // chưa xuất hiện (hoặc bỏ qua)
           var qt = Math.min(1, (now - cl.born) / (cl.tA - cl.born)), fade = 1, cx = px, cy = py, cA = cl.ang, cq;
           if (!cl.merged && now >= cl.tA){                              // hợp thể: phân thân nhập vào bản thể
             cl.merged = true; cl.mergeAt = now; o.fl = now; cl.kx = Math.sin(cl.ang * Math.PI / 180); cl.ky = -Math.cos(cl.ang * Math.PI / 180);   // phân thân đâm trúng: bản thể bị đẩy giật một nhịp
