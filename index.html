@@ -287,10 +287,10 @@ html.scrolling body::before,html.scrolling .hero h1,html.scrolling .tabbar::afte
 .lg-spark{position:absolute;width:5px;height:5px;margin:-2.5px 0 0 -2.5px;border-radius:50%;background:#fff;box-shadow:0 0 8px 2px #22d3ee,0 0 14px 3px rgba(139,92,246,.7)}
 @keyframes lgflash{0%{filter:drop-shadow(0 0 14px #67e8f9)}100%{filter:drop-shadow(0 0 12px rgba(34,211,238,.4))}}
 .top .mini span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#swordFly{position:fixed;inset:0;z-index:25;pointer-events:none;overflow:hidden}
+#swordFly{position:absolute;inset:0;z-index:25;pointer-events:none;overflow:hidden}
 #swordFly svg{position:absolute;left:0;top:0;overflow:visible;will-change:transform;
   filter:drop-shadow(0 0 6px rgba(34,211,238,.85))}
-#swordFly canvas{position:absolute;left:0;top:0;width:100%;height:100%}
+#swordFly canvas{position:fixed;left:0;top:0;width:100%;height:100%}
 </style>
 <script>
 /* Cờ dùng chung: máy cảm ứng/điện thoại không chạy kiếm bay; chế độ "kiếm vẫn bay khi thao tác" (bật trong khung Chỉnh sửa). */
@@ -1396,6 +1396,7 @@ $('#importFile').onchange = e => {
   function drawTrails(now){
     if (!trails.length){ if (dirty){ ctx.clearRect(0, 0, innerWidth, innerHeight); dirty = false; } return; }
     ctx.clearRect(0, 0, innerWidth, innerHeight); dirty = true;
+    ctx.save(); ctx.translate(-pageXOffset, -pageYOffset);   // vệt sáng lưu theo toạ độ trang, vẽ lại theo vị trí cuộn
     ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'butt';
     for (var n = trails.length - 1; n >= 0; n--){
       var T = trails[n], P = T.pts, k;
@@ -1410,7 +1411,7 @@ $('#importFile').onchange = e => {
         ctx.strokeStyle = 'rgba(255,255,255,' + (.42 * u * u * p1.q).toFixed(3) + ')'; ctx.lineWidth = p1.w * .55 * u + .6; ctx.stroke();   // lõi sáng mảnh
       }
     }
-    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalCompositeOperation = 'source-over'; ctx.restore();
   }
   function ring(x, y, d){        // sóng xung kích nhỏ tại điểm tách / hợp thể
     var r = document.createElement('div'); r.className = 'lg-ring';
@@ -1517,7 +1518,7 @@ $('#importFile').onchange = e => {
     }
     return logos[logos.length - 1];
   }
-  function centre(el){ var r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, s: r.width }; }
+  function centre(el){ var r = el.getBoundingClientRect(); return { x: r.left + pageXOffset + r.width / 2, y: r.top + pageYOffset + r.height / 2, s: r.width }; }   // toạ độ TRANG (đã cộng vị trí cuộn)
   function setSpin(el, a){
     var v = 'rotate(' + a.toFixed(2) + ' 256 256)';
     el.querySelector('.lg-a').setAttribute('transform', v);
@@ -1536,8 +1537,8 @@ $('#importFile').onchange = e => {
         DS = 6, DK = K * DS / (R * .9);                // bước mô phỏng; tốc độ đổi độ cong tối đa (không bẻ lái giật)
     var xl = m, xr = W - m, yt = m, yb = H - m;
     var lo = opt.lo || 3.2 * (W + H), hi = opt.hi || 5.7 * (W + H), HD = R * (opt.hk || 3.4);
-    var QS = opt.q || null, qn = 0, wp = null, wd0 = 1, ws = 0;
-    var bx0 = m + R * .3, bx1 = W - m - R * .3, by0 = m + R * .3, by1 = H - m - R * .3, mxh = (bx0 + bx1) / 2, myh = (by0 + by1) / 2;
+    var QS = opt.q || null, zn = opt.zone || { y0: 0, y1: H }, qn = 0, wp = null, wd0 = 1, ws = 0;
+    var bx0 = m + R * .3, bx1 = W - m - R * .3, by0 = Math.max(m + R * .3, zn.y0), by1 = Math.min(H - m - R * .3, zn.y1), mxh = (bx0 + bx1) / 2, myh = (by0 + by1) / 2;
     function nextWp(x, y){          // góc phần tư theo vòng: 0 trên-trái, 1 trên-phải, 2 dưới-phải, 3 dưới-trái
       var q = ((qn % 4) + 4) % 4; qn += QS.dir;
       var left = (q === 0 || q === 3), top = q < 2;
@@ -1619,18 +1620,20 @@ $('#importFile').onchange = e => {
 
   function begin(now){
     cur = pickLogo(); t0 = now; sw = [];
-    var c = centre(cur), W = innerWidth, H = innerHeight, F = Math.max(96, c.s);
+    var c = centre(cur), W = document.documentElement.clientWidth || innerWidth, F = Math.max(96, c.s);
+    var H = Math.max(innerHeight, document.documentElement.scrollHeight, document.body.scrollHeight); sw.PH = H;   // H: chiều cao cả trang (kể cả phần phải cuộn); nửa trên cho kiếm 1 và 3 phân thân, nửa dưới cho kiếm 2 và 3 phân thân
     var logoSw = cur.querySelectorAll('.lg-sw');
-    var QD = Math.random() < .5 ? 1 : -1, QR = Math.floor(Math.random() * 4), GL = (3.2 + Math.random() * 2.5) * (W + H);
+    var QD = Math.random() < .5 ? 1 : -1, QR = Math.floor(Math.random() * 4), GL = (3.2 + Math.random() * 2.5) * (W + H / 2);
     var HL = F * HOLD, sy = (c.y + HL * .72 > H - F * .4) ? -1 : 1;   // sát đáy màn hình thì đứng chờ phía trên logo thay vì phía dưới
     for (var i = 0; i < 2; i++){
+      var zn = i ? { y0: H / 2, y1: H } : { y0: 0, y1: H / 2 };
       logoSw[i].style.visibility = 'hidden';
       var s = document.createElementNS(NS, 'svg');
       s.setAttribute('viewBox', '0 0 512 512');
       var u = document.createElementNS(NS, 'use'); u.setAttribute('href', '#lg-sword');
       s.appendChild(u); layer.appendChild(s);
       var ra = BASE[i] * Math.PI / 180, Wi = { x: c.x - Math.sin(ra) * HL, y: c.y + sy * Math.cos(ra) * HL };   // chỗ chờ: kiếm 45° đứng bên trái, kiếm -45° đứng bên phải
-      var o = { el: s, use: u, path: buildPath(c, W, H, F, (BASE[i] - 90) * Math.PI / 180, { target: Wi, goal: GL, q: { q0: (QR + 2 * i) % 4, dir: QD } }), ang: BASE[i],   // mũi kiếm hướng lên: góc bay = góc kiếm - 90°
+      var o = { el: s, use: u, zone: zn, path: buildPath(c, W, H, F, (BASE[i] - 90) * Math.PI / 180, { target: Wi, goal: GL + Math.abs(c.y - (zn.y0 + zn.y1) / 2) * 1.2, zone: zn, q: { q0: (QR + 2 * i) % 4, dir: QD } }), ang: BASE[i],   // mũi kiếm hướng lên: góc bay = góc kiếm - 90°
                 tLeft: null, spawned: false, merged: false, hasQ: false, fl: -1e9, side: i ? -1 : 1 };
       o.cls = [];                                                                        // các phân thân: ẩn cho tới khi kiếm rời vòng tròn
       for (var j = 0; j < CLONES; j++){
@@ -1729,8 +1732,8 @@ $('#importFile').onchange = e => {
           var seg = o.sW - s;
           if (seg > 260){
             var ha = P.at(s - 36), hb = P.at(s + 36), hd = Math.atan2(hb.y - ha.y, hb.x - ha.x);
-            cl.Q = buildPath(sw.c0, innerWidth, innerHeight, F, hd + (jj % 2 ? -o.side : o.side) * (.55 + Math.random() * .6),
-                             { start: P.at(s), target: o.Wp, lo: seg * .85, hi: seg, hk: 2.2, q: cl.qc });
+            cl.Q = buildPath(sw.c0, innerWidth, sw.PH, F, hd + (jj % 2 ? -o.side : o.side) * (.55 + Math.random() * .6),
+                             { start: P.at(s), target: o.Wp, lo: seg * .85, hi: seg, hk: 2.2, zone: o.zone, q: cl.qc });
             cl.born = now; cl.tA = t0 + dur + WAIT_MS + i * 150 + jj * CLONE_GAP; cl.ang = o.ang;
             sparks(px, py, 12, size * .5); ring(px, py, size * .9);
           } else { cl.merged = true; }
