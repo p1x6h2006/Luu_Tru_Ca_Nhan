@@ -63,7 +63,7 @@ a{color:inherit}
 .file:hover::before,.lc:hover::before,.vid:hover::before,.pic:hover::before,.meter:hover::before,.tab:hover::before,.btn:hover::before{opacity:1}
 
 /* ---------- Đầu trang ---------- */
-.top{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 0}
+.top{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0 6px}
 .top .mini{font:800 20px/1 var(--font);letter-spacing:-0.02em;min-width:0;display:flex;align-items:center;gap:10px}
 .topbtns{display:flex;gap:8px}
 .btn{border:1px solid var(--rule);background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.02));border-radius:10px;padding:7px 15px;font-weight:500;text-decoration:none;display:inline-block;line-height:1.4;overflow:hidden;
@@ -94,7 +94,7 @@ a{color:inherit}
 .meter .head{font-weight:600;margin-bottom:6px;font-size:15px;color:#cfe3ff}
 
 /* ---------- Thẻ ngăn hồ sơ ---------- */
-.tabbar{position:sticky;top:0;z-index:20;background:rgba(6,11,24,.95);box-shadow:0 8px 18px -12px rgba(0,0,0,.8)}
+.tabbar{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,rgba(10,18,42,.93),rgba(10,18,42,.86))}
 .tabbar::after{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;background:linear-gradient(90deg,transparent,var(--cy),var(--vi),#f0abfc,transparent);background-size:200% 100%;opacity:.8}
 .tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;align-items:end}
 .tab{--tc:var(--c-files);--ti:var(--c-files-ink);border:0;border-top:7px solid var(--tc);border-radius:14px 14px 0 0;
@@ -266,8 +266,9 @@ html.mobile #swordFly{display:none!important}
 html.lite #fx,html.lite #swordFly{display:none!important}
 html.lite body::before{animation:none}
 html.lite *,html.lite *::before,html.lite *::after{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;filter:none!important;animation:none!important;transition:none!important;text-shadow:none!important}
-#liteBtn{position:fixed;left:10px;bottom:10px;z-index:30;opacity:.45;border:1px solid var(--rule);background:rgba(9,15,32,.9);color:var(--ink);border-radius:99px;padding:4px 11px;font:500 13px var(--font);cursor:pointer}
-#liteBtn:hover,#liteBtn[aria-pressed=true]{opacity:1}
+#sndBtn{bottom:46px!important}
+#liteBtn,#sndBtn{position:fixed;left:10px;bottom:10px;z-index:30;opacity:.45;border:1px solid var(--rule);background:rgba(9,15,32,.9);color:var(--ink);border-radius:99px;padding:4px 11px;font:500 13px var(--font);cursor:pointer}
+#liteBtn:hover,#liteBtn[aria-pressed=true],#sndBtn:hover,#sndBtn[aria-pressed=true]{opacity:1}
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation:none!important;transition:none!important}}
 
 /* Đang cuộn: tạm dừng hoạt ảnh nền và tắt làm mờ kính để cuộn mượt (kiếm vẫn bay) */
@@ -1323,7 +1324,7 @@ $('#importFile').onchange = e => {
   }, { passive:true });
 
   var c = document.getElementById('fx'); if (!c || !c.getContext) return;
-  var g = c.getContext('2d'), W = 0, H = 0, P = [], M = { x:-9999, y:-9999 }, LINK = 110, raf = 0, root = document.documentElement;
+  var g = c.getContext('2d'), W = 0, H = 0, P = [], M = { x:-9999, y:-9999 }, LINK = 110, CUR = 190, raf = 0, root = document.documentElement;
   function size(){
     var d = 1; W = innerWidth; H = innerHeight;   // nền hạt chỉ là nét mảnh mờ: không cần độ phân giải kép
     c.width = W * d; c.height = H * d; g.setTransform(d, 0, 0, d, 0, 0);
@@ -1342,6 +1343,16 @@ $('#importFile').onchange = e => {
       for (var j = i + 1; j < P.length; j++){
         var b = P[j], dx = a.x - b.x, dy = a.y - b.y, d = dx * dx + dy * dy;
         if (d < LINK * LINK){ g.strokeStyle = 'rgba(103,200,255,' + (0.20 * (1 - Math.sqrt(d) / LINK)) + ')'; g.lineWidth = 1; g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(b.x, b.y); g.stroke(); }
+      }
+      /* Con trỏ: nối dây tới các chấm ở gần và kéo nhẹ chúng về phía con trỏ */
+      if (M.x > -999){
+        var mx = M.x - a.x, my = M.y - a.y, md = mx * mx + my * my;
+        if (md < CUR * CUR){
+          var mr = Math.sqrt(md), u = 1 - mr / CUR;
+          g.strokeStyle = 'rgba(125,225,255,' + (0.7 * u).toFixed(3) + ')'; g.lineWidth = 1.2;
+          g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(M.x, M.y); g.stroke();
+          if (!reduce && mr > 40){ a.x += mx * .0035 * u; a.y += my * .0035 * u; }
+        }
       }
       g.fillStyle = 'rgba(165,233,245,.85)';
       g.beginPath(); g.arc(a.x, a.y, a.r, 0, 6.2832); g.fill();
@@ -1384,6 +1395,88 @@ $('#importFile').onchange = e => {
   var layer = document.getElementById('swordFly'); if (!layer) return;
   var logos = [].slice.call(document.querySelectorAll('svg.logo'));
   if (!logos.length) return;
+
+  /* Âm thanh kiếm: tổng hợp bằng Web Audio (không cần tệp âm thanh). Trình duyệt chỉ cho phát sau khi bạn bấm/chạm/gõ phím trên trang ít nhất một lần.
+     Có nút bật/tắt ở góc trái dưới, lựa chọn được nhớ lại. */
+  var SFX = (function(){
+    var ac = null, master = null, nb = null, voices = [], on = true, R = document.documentElement;
+    try { on = localStorage.getItem('swordSound') !== '0'; } catch (e) {}
+    function ready(){ return ac && ac.state === 'running' && on && !document.hidden && !R.classList.contains('noscroll') && !R.classList.contains('lite'); }
+    function unlock(){
+      if (!ac){
+        var C = window.AudioContext || window.webkitAudioContext; if (!C) return;
+        try { ac = new C(); } catch (e) { ac = null; return; }
+        master = ac.createGain(); master.gain.value = .55;
+        var cp = ac.createDynamicsCompressor(); master.connect(cp); cp.connect(ac.destination);
+        var n = ac.sampleRate * 2; nb = ac.createBuffer(1, n, ac.sampleRate); var d = nb.getChannelData(0);
+        for (var i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+      }
+      if (ac.state === 'suspended') ac.resume();
+    }
+    ['pointerdown', 'keydown', 'touchstart'].forEach(function(ev){ addEventListener(ev, unlock, { capture: true, passive: true }); });
+    function pan(x){ return Math.max(-1, Math.min(1, x / Math.max(1, innerWidth) * 2 - 1)) * .8; }
+    function out(node, x){
+      if (ac.createStereoPanner){ var p = ac.createStereoPanner(); p.pan.value = pan(x); node.connect(p); p.connect(master); }
+      else node.connect(master);
+    }
+    function osc(type, f0, f1, t, dur, vol, x){
+      var o = ac.createOscillator(), g = ac.createGain();
+      o.type = type; o.frequency.setValueAtTime(f0, t); if (f1 !== f0) o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+      g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(vol, t + .006); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+      o.connect(g); out(g, x); o.start(t); o.stop(t + dur + .05);
+    }
+    function burst(type, f, t, dur, vol, x){
+      var s = ac.createBufferSource(), fl = ac.createBiquadFilter(), g = ac.createGain();
+      s.buffer = nb; fl.type = type; fl.frequency.value = f;
+      g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(vol, t + .004); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+      s.connect(fl); fl.connect(g); out(g, x); s.start(t, Math.random()); s.stop(t + dur + .05);
+    }
+    function voice(i){
+      if (voices[i]) return voices[i];
+      var s = ac.createBufferSource(), bp = ac.createBiquadFilter(), g = ac.createGain(), p = ac.createStereoPanner ? ac.createStereoPanner() : null;
+      s.buffer = nb; s.loop = true; bp.type = 'bandpass'; bp.Q.value = 1.1; bp.frequency.value = 500; g.gain.value = 0;
+      s.connect(bp); bp.connect(g); if (p){ g.connect(p); p.connect(master); } else g.connect(master);
+      s.start(); return (voices[i] = { g: g, bp: bp, p: p });
+    }
+    var api = {
+      get on(){ return on; },
+      set: function(v){ on = v; try { localStorage.setItem('swordSound', v ? '1' : '0'); } catch (e) {} if (v) unlock(); else api.off(); },
+      unlock: unlock,
+      off: function(){ if (!ac) return; voices.forEach(function(v){ if (v) v.g.gain.setTargetAtTime(0, ac.currentTime, .04); }); },
+      fly: function(i, speed, x){                       // tiếng xé gió: to và chói hơn khi kiếm bay nhanh
+        if (!ac) return;
+        if (!ready()){ if (voices[i]) voices[i].g.gain.setTargetAtTime(0, ac.currentTime, .05); return; }
+        var v = voice(i), k = Math.min(1, speed / 1300), t = ac.currentTime;
+        v.g.gain.setTargetAtTime(speed < 8 ? 0 : .02 + .2 * k * k, t, .06);
+        v.bp.frequency.setTargetAtTime(350 + 1900 * k, t, .06);
+        if (v.p) v.p.pan.setTargetAtTime(pan(x), t, .06);
+      },
+      shing: function(x){                               // kiếm tuốt khỏi vỏ
+        if (!ready()) return; var t = ac.currentTime;
+        burst('highpass', 3800, t, .42, .22, x); osc('sine', 2400, 3900, t, .3, .05, x);
+      },
+      ping: function(x){                                // phân thân xuất hiện
+        if (!ready()) return; var t = ac.currentTime;
+        osc('triangle', 680, 1500, t, .2, .1, x); osc('sine', 1360, 3000, t, .14, .035, x);
+      },
+      clink: function(x, vol){                          // hai lưỡi kiếm chạm nhau
+        if (!ready()) return; var t = ac.currentTime; vol = vol || 1;
+        [1318, 1975, 2960, 4210].forEach(function(f, n){ osc('sine', f, f * .997, t, .55 - n * .08, .13 * vol / (n + 1), x); });
+        burst('highpass', 5200, t, .05, .1 * vol, x);
+      },
+      hit: function(x){                                 // cú đâm vào logo
+        if (!ready()) return; var t = ac.currentTime;
+        api.clink(x, 1.5); osc('sine', 130, 42, t, .3, .5, x); burst('lowpass', 700, t, .18, .35, x);
+      }
+    };
+    return api;
+  })();
+  (function(){                                          // nút bật/tắt tiếng
+    var b = document.createElement('button'); b.id = 'sndBtn'; b.type = 'button';
+    function paint(){ b.textContent = SFX.on ? '🔊 Tiếng kiếm: bật' : '🔇 Tiếng kiếm: tắt'; b.setAttribute('aria-pressed', SFX.on); }
+    b.onclick = function(){ SFX.set(!SFX.on); paint(); };
+    paint(); document.body.appendChild(b);
+  })();
 
   /* Vệt sáng: canvas nằm dưới các thanh kiếm, vẽ đường mờ dần theo vị trí kiếm vừa đi qua (cộng sáng 'lighter'). */
   var cv = document.createElement('canvas'); layer.insertBefore(cv, layer.firstChild);
@@ -1475,7 +1568,7 @@ $('#importFile').onchange = e => {
           cl.ang += shortest(Math.atan2(o.ly - cl.lcy, o.lx - cl.lcx) * 180 / Math.PI + 90 - cl.ang) * .25;
           cl.el.setAttribute('width', size); cl.el.setAttribute('height', size);
           cl.el.style.transform = 'translate(' + (ccx - size / 2).toFixed(1) + 'px,' + (ccy - size / 2).toFixed(1) + 'px) rotate(' + cl.ang.toFixed(1) + 'deg)';
-          if (r >= 1){ cl.merged = true; cl.el.style.opacity = 0; killTrail(cl.ctr); sparks(px, py, 12, size * .7); ring(px, py, size * 1.5); }
+          if (r >= 1){ cl.merged = true; cl.el.style.opacity = 0; killTrail(cl.ctr); sparks(px, py, 12, size * .7); ring(px, py, size * 1.5); SFX.clink(px, .8); }
           else { cl.el.style.opacity = cl.lcq; pend++; pushTrail(cl.ctr, ccx - Math.sin(cl.ang * Math.PI / 180) * size * .3, ccy + Math.cos(cl.ang * Math.PI / 180) * size * .3, size * .05, cl.lcq, now); }
         }
         if (!pend){ o.merged = true; o.rs = 1; o.rT = now; }
@@ -1500,11 +1593,12 @@ $('#importFile').onchange = e => {
         px = o.sx; py = o.sy;
         size = c.s + (o.lsz + (sw.F - o.lsz) * smooth(e) - c.s) * smooth(dc / (sw.F * 1.2));
         var hr = Math.max(c.s * .2, sp * 1.2); mo = smooth((dc - hr) / (c.s * .35));   // mờ hẳn đúng lúc chạm logo
-        if (dc < hr){ o.rDone = true; o.el.remove(); dropClones(o); reveal(i); killTrail(o.tr); sparks(c.x, c.y, 16, c.s * 1.1); ring(c.x, c.y, c.s * 2.2); cur.classList.remove('flash'); void cur.getBoundingClientRect(); cur.classList.add('flash'); }
+        if (dc < hr){ o.rDone = true; o.el.remove(); dropClones(o); reveal(i); killTrail(o.tr); SFX.hit(c.x); SFX.fly(i, 0, c.x); sparks(c.x, c.y, 16, c.s * 1.1); ring(c.x, c.y, c.s * 2.2); cur.classList.remove('flash'); void cur.getBoundingClientRect(); cur.classList.add('flash'); }
       }
       o.el.style.opacity = mo; o.el.setAttribute('width', size); o.el.setAttribute('height', size);
       o.el.style.transform = 'translate(' + (px - size / 2).toFixed(1) + 'px,' + (py - size / 2).toFixed(1) + 'px) rotate(' + o.ang.toFixed(1) + 'deg)';
       pushTrail(o.tr, px - Math.sin(o.ang * Math.PI / 180) * size * .3, py + Math.cos(o.ang * Math.PI / 180) * size * .3, size * .05, mo, now);
+      SFX.fly(i, o.px0 === undefined ? 0 : Math.hypot(px - o.px0, py - o.py0) / Math.max(dt, 1) * 1000, px); o.px0 = px; o.py0 = py;
     }
     setSpin(cur, sw.spin + (Math.round(sw.spin / 360) * 360 - sw.spin) * (es / 2));
     drawTrails(now);
@@ -1622,7 +1716,7 @@ $('#importFile').onchange = e => {
     cur = pickLogo(); t0 = now; sw = [];
     var c = centre(cur), W = document.documentElement.clientWidth || innerWidth, F = Math.max(96, c.s);
     var H = Math.max(innerHeight, document.documentElement.scrollHeight, document.body.scrollHeight); sw.PH = H;   // H: chiều cao cả trang (kể cả phần phải cuộn); nửa trên cho kiếm 1 và 3 phân thân, nửa dưới cho kiếm 2 và 3 phân thân
-    var logoSw = cur.querySelectorAll('.lg-sw');
+    var logoSw = cur.querySelectorAll('.lg-sw'); SFX.shing(c.x);
     var QD = Math.random() < .5 ? 1 : -1, QR = Math.floor(Math.random() * 4), GL = (3.2 + Math.random() * 2.5) * (W + H / 2);
     var HL = F * HOLD, sy = (c.y + HL * .72 > H - F * .4) ? -1 : 1;   // sát đáy màn hình thì đứng chờ phía trên logo thay vì phía dưới
     for (var i = 0; i < 2; i++){
@@ -1664,12 +1758,12 @@ $('#importFile').onchange = e => {
     setSpin(cur, 0);
     sw.forEach(function(o){ o.el.remove(); dropClones(o); killTrail(o.tr); }); sw = [];
     cur.classList.remove('flash'); void cur.getBoundingClientRect(); // từng kiếm đã hiện và tạo tia lửa riêng lúc chạm logo
-    cur = null; nextAt = now + REST_MS;
+    SFX.off(); cur = null; nextAt = now + REST_MS;
   }
   function frame(now){
     requestAnimationFrame(frame);
     var dt = now - last; last = now;
-    if (document.documentElement.classList.contains('lite')) return;
+    if (document.documentElement.classList.contains('lite')){ SFX.off(); return; }
     if (dt > 100) dt = 100;                                      // máy giật lag thì không để góc xoay bị nhảy
     if (!cur){ if (now < nextAt || (!window.__swAlways && now - lastAct < IDLE_MS)){ drawTrails(now); return; } begin(now); recall = 0; }   // chỉ bay khi đã không thao tác đủ IDLE_MS
     if (!window.__swAlways && !recall && lastAct > t0) recall = now;                   // vừa có thao tác: gọi kiếm về
@@ -1707,7 +1801,7 @@ $('#importFile').onchange = e => {
           dist = (len + F * PULL) * (1 - tt * tt * tt);                      // tăng tốc dồn dập rồi đâm thẳng vào tâm
           size = c.s + (F - c.s) * (1 - smooth((tt - .5) / .5));
           if (tt >= 1){                                                    // trúng đích: tia lửa + logo giật
-            o.phase = 4; o.el.remove(); dropClones(o); killTrail(o.tr); reveal(i);
+            o.phase = 4; o.el.remove(); dropClones(o); killTrail(o.tr); reveal(i); SFX.hit(c.x); SFX.fly(i, 0, c.x);
             sparks(c.x, c.y, 16, c.s * 1.1); ring(c.x, c.y, c.s * 2.2);
             cur.classList.remove('flash'); void cur.getBoundingClientRect(); cur.classList.add('flash');
             continue;
@@ -1717,7 +1811,7 @@ $('#importFile').onchange = e => {
         for (jj = 0; jj < o.cls.length; jj++){ cl = o.cls[jj]; if (cl.merged && cl.kx !== undefined){ var kk = Math.max(0, 1 - (now - cl.mergeAt) / 160); kk *= kk; px += cl.kx * F * .12 * kk; py += cl.ky * F * .12 * kk; } }   // giật theo hướng phân thân lao vào
       }
       o.ang += shortest(target - o.ang) * kt;
-      if (o.landed){ o.landed = false; sparks(px, py, 8, size * .5); ring(px, py, size * .9); }   // dừng khựng tại chỗ chờ: lóe sáng
+      if (o.landed){ o.landed = false; sparks(px, py, 8, size * .5); ring(px, py, size * .9); SFX.clink(px, .5); }   // dừng khựng tại chỗ chờ: lóe sáng
       var sx = 1 - (1 - THICK) * smooth(ft / .12);                // kiếm thon lại còn THICK (68%) bề ngang khi bay; tăng THICK để kiếm dày hơn
       var tf = 'translate(256 256) scale(' + sx.toFixed(3) + ' 1) translate(-256 -256)';
       var mo = o.phase === 3 ? 1 - smooth((tt - .6) / .4) : 1;     // chạm tới tâm thì biến mất vào logo
@@ -1734,7 +1828,7 @@ $('#importFile').onchange = e => {
             var ha = P.at(s - 36), hb = P.at(s + 36), hd = Math.atan2(hb.y - ha.y, hb.x - ha.x);
             cl.Q = buildPath(sw.c0, innerWidth, sw.PH, F, hd + (jj % 2 ? -o.side : o.side) * (.55 + Math.random() * .6),
                              { start: P.at(s), target: o.Wp, lo: seg * .85, hi: seg, hk: 2.2, zone: o.zone, q: cl.qc });
-            cl.born = now; cl.tA = t0 + dur + WAIT_MS + i * 150 + jj * CLONE_GAP; cl.ang = o.ang;
+            cl.born = now; cl.tA = t0 + dur + WAIT_MS + i * 150 + jj * CLONE_GAP; cl.ang = o.ang; SFX.ping(px);
             sparks(px, py, 12, size * .5); ring(px, py, size * .9);
           } else { cl.merged = true; }
         }
@@ -1747,7 +1841,7 @@ $('#importFile').onchange = e => {
           var qt = Math.min(1, (now - cl.born) / (cl.tA - cl.born)), fade = 1, cx = px, cy = py, cA = cl.ang, cq;
           if (!cl.merged && now >= cl.tA){                              // hợp thể: phân thân nhập vào bản thể
             cl.merged = true; cl.mergeAt = now; o.fl = now; cl.kx = Math.sin(cl.ang * Math.PI / 180); cl.ky = -Math.cos(cl.ang * Math.PI / 180);   // phân thân đâm trúng: bản thể bị đẩy giật một nhịp
-            sparks(px, py, 12, size * .6); ring(px, py, size * 1.5);
+            sparks(px, py, 12, size * .6); ring(px, py, size * 1.5); SFX.clink(px, .9);
           }
           if (cl.merged) fade = 1 - smooth((now - cl.mergeAt) / 160);
           else {
@@ -1781,6 +1875,7 @@ $('#importFile').onchange = e => {
         : ''; }
       o.use.setAttribute('transform', tf);
       o.lx = px; o.ly = py; o.lsz = size;
+      SFX.fly(i, o.px0 === undefined ? 0 : Math.hypot(px - o.px0, py - o.py0) / Math.max(dt, 1) * 1000, px); o.px0 = px; o.py0 = py;
       o.el.style.opacity = mo;
       if (o.sz !== size){ o.sz = size; o.el.setAttribute('width', size); o.el.setAttribute('height', size); }
       o.el.style.transform = 'translate(' + (px - size / 2).toFixed(1) + 'px,' + (py - size / 2).toFixed(1) + 'px) rotate(' + o.ang.toFixed(1) + 'deg)';
@@ -1794,7 +1889,7 @@ $('#importFile').onchange = e => {
   }
   var hiddenAt = 0;                                              // tab bị ẩn thì tạm dừng hiệu ứng, không bị nhảy cóc khi quay lại
   document.addEventListener('visibilitychange', function(){
-    if (document.hidden){ hiddenAt = performance.now(); return; }
+    if (document.hidden){ hiddenAt = performance.now(); SFX.off(); return; }
     if (!hiddenAt) return;
     var gap = performance.now() - hiddenAt; hiddenAt = 0;
     t0 += gap; nextAt += gap; if (recall) recall += gap; sw.forEach(function(o){ ['tLeft', 'fl', 'mergeAt', 'tw', 'tp', 'tc'].forEach(function(k){ if (o[k]) o[k] += gap; }); (o.cls || []).forEach(function(c){ ['born', 'tA', 'mergeAt'].forEach(function(k){ if (c[k]) c[k] += gap; }); }); }); last = performance.now();
