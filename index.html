@@ -510,7 +510,10 @@ function normalize(s){
   return s;
 }
 async function fromFile(){
-  try { const r = await fetch('data.json', { cache:'no-store' }); if (r.ok){ const o = normalize(await r.json()); return o; } } catch (e) {}
+  const ac = new AbortController(), t = setTimeout(() => ac.abort(), 40000);
+  try { const r = await fetch('data.json', { cache:'no-cache', signal:ac.signal }); if (r.ok) return normalize(await r.json()); }
+  catch (e) {}
+  finally { clearTimeout(t); }
   return null;
 }
 const sameData = (a, b) => { try { const f = o => JSON.stringify(Object.assign({}, o, { images:undefined })); return f(a) === f(b); } catch (e) { return false; } };
@@ -519,12 +522,15 @@ async function load(){
      và tự quay về data.json ngay khi bản trên kho đã trùng với bản chỉnh sửa. */
   let local = null, dirty = false;
   try { const raw = localStorage.getItem(LS); if (raw) local = normalize(JSON.parse(raw)); dirty = localStorage.getItem(LS + '-dirty') === '1'; } catch (e) {}
-  const file = await fromFile();
-  if (file && (!local || !dirty || sameData(file, local))){
-    state = file; source = 'file';
-    try { localStorage.removeItem(LS); localStorage.removeItem(LS + '-dirty'); } catch (e) {}
-  } else if (local){ state = local; source = 'local'; }
-  else if (file){ state = file; source = 'file'; }
+  const dropLocal = () => { try { localStorage.removeItem(LS); localStorage.removeItem(LS + '-dirty'); } catch (e) {} };
+  if (local && dirty){
+    state = local; source = 'local';        // hiện ngay bản đang chỉnh dở, không chờ mạng
+    fromFile().then(file => { if (file && state === local && sameData(file, local)){ state = file; source = 'file'; dropLocal(); ingestImages(); render(); } });
+  } else {
+    const file = await fromFile();
+    if (file){ state = file; source = 'file'; dropLocal(); }
+    else if (local){ state = local; source = 'local'; }
+  }
   if (!state){ state = normalize(JSON.parse(JSON.stringify(DEFAULT))); source = 'default'; }
   ingestImages();
   if (source === 'local'){ try { (await idbLoadAll()).forEach((v, k) => { if (!imgRaw.has(k)) imgRaw.set(k, v); }); buildPublicUrls(); } catch (e) {} }
@@ -1289,7 +1295,10 @@ $('#importFile').onchange = e => {
 
 /* ---------- Khởi động ---------- */
 (async function(){
-  await load();
+  $('#kb').textContent = '...';
+  $('#panel').innerHTML = '<p style="padding:30px 10px;text-align:center;color:var(--muted)">Đang tải dữ liệu...</p>';
+  try { await load(); }
+  catch (e) { state = normalize(JSON.parse(JSON.stringify(DEFAULT))); source = 'default'; ingestImages(); }
   const h = location.hash.replace('#', ''); if (TABS[h]) tab = h;
   render();
 })();
@@ -1348,7 +1357,7 @@ $('#importFile').onchange = e => {
 </script>
 
 <script>
-/* Logo: đĩa tròn xoay 1 vòng, hai thanh kiếm bay ra theo quỹ đạo ngẫu nhiên khắp trang (mũi kiếm luôn hướng về phía bay, có vệt sáng phía sau); rời vòng tròn 1 giây thì mỗi kiếm phân thân thêm 1 và bay đường riêng; bản thể đứng chờ trước logo, phân thân về nhập vào rồi bản thể mới lùi lấy đà và đâm vào logo. Chỉ là hiệu ứng trang trí. */
+/* Logo: đĩa tròn xoay 1 vòng, hai thanh kiếm bay ra theo quỹ đạo ngẫu nhiên khắp trang (mũi kiếm luôn hướng về phía bay, có vệt sáng phía sau); rời vòng tròn 1 giây thì mỗi kiếm phân thân thêm 2 (CLONES) và mỗi phân thân bay đường riêng; bản thể đứng chờ trước logo, phân thân về nhập vào rồi bản thể mới lùi lấy đà và đâm vào logo. Chỉ là hiệu ứng trang trí. */
 (function(){
   var REST_MS   = 5000;   // nghỉ bao lâu sau khi kiếm về thì bay lượt mới
   var SPEED     = 650;     // tốc độ bay trung bình (px/giây): nhỏ hơn = chậm hơn
@@ -1357,6 +1366,11 @@ $('#importFile').onchange = e => {
   var LAUNCH    = .6;     // tốc độ lúc rời vòng tròn so với tốc độ bay đều (trước là 0.1; 1 = không chậm lúc đầu)
   var TRAIL_MS  = 520;    // vệt sáng sau kiếm kéo dài bao lâu rồi mờ hẳn (ms)
   var SPLIT_DELAY = 1000; // rời khỏi vòng tròn bao lâu (ms) thì mới phân thân
+  var CLONES    = 2;      // mỗi bản thể phân ra bao nhiêu phân thân (1-3)
+  var CLONE_GAP = 260;    // các phân thân về tới chỗ bản thể cách nhau bao lâu (ms)
+  var CSTYLE = [{ f:'hue-rotate(38deg) drop-shadow(0 0 6px rgba(167,139,250,.9))', rgb:[167,139,250] },   // phân thân 1: tím
+                { f:'hue-rotate(-52deg) drop-shadow(0 0 6px rgba(244,114,182,.9))', rgb:[244,114,182] },   // phân thân 2: hồng
+                { f:'hue-rotate(150deg) drop-shadow(0 0 6px rgba(251,191,36,.9))',  rgb:[251,191,36] }];     // phân thân 3: vàng
   var HOLD      = 1.35;   // bản thể đứng chờ cách tâm logo bao xa (nhân với cỡ kiếm)
   var PULL      = .42;    // lùi lại lấy đà bao xa trước khi đâm (nhân với cỡ kiếm)
   var WAIT_MS   = 900;    // bản thể chờ phân thân về sau khi tới vị trí chờ (ms)
@@ -1437,25 +1451,34 @@ $('#importFile').onchange = e => {
   ['pointerdown', 'pointermove', 'keydown', 'wheel', 'scroll', 'touchstart'].forEach(function(ev){
     addEventListener(ev, function(){ lastAct = performance.now(); }, { passive: true, capture: true });
   });
-  function recallFrame(now, dt){      // có thao tác: phân thân bay về nhập vào bản thể trước, rồi bản thể mới bay về logo
-    var c = centre(cur), i, o, cl, es = 0;
+  function dropClones(o){ o.cls.forEach(function(c){ c.el.remove(); killTrail(c.ctr); }); }
+  function recallFrame(now, dt){      // có thao tác: các phân thân bay về nhập vào bản thể trước, rồi bản thể mới bay về logo
+    var c = centre(cur), i, j, o, cl, es = 0;
     for (i = 0; i < 2; i++){
-      o = sw[i]; cl = o.cl;
+      o = sw[i];
       if (o.phase === 4 || o.rDone){ es += 1; continue; }
       if (o.rs === undefined){
-        o.rs = (o.Q && !o.merged) ? 0 : 1; o.rT = now;                                     // 0: phân thân đang về bản thể · 1: bản thể bay về logo
-        o.d0 = Math.max(350, Math.min(1100, Math.hypot(o.lcx - o.lx, o.lcy - o.ly) / 2.2));
+        var pend0 = 0;
+        o.cls.forEach(function(k){ if (k.Q && !k.merged){ pend0++; k.d0 = Math.max(350, Math.min(1100, Math.hypot(k.lcx - o.lx, k.lcy - o.ly) / 2.2)); } });
+        o.rs = pend0 ? 0 : 1; o.rT = now;                                                  // 0: phân thân đang về bản thể · 1: bản thể bay về logo
       }
-      var px = o.lx, py = o.ly, size = o.lsz, mo = 1, cq = 0, cx = 0, cy = 0, cA = o.ang, r, e;
-      if (o.rs === 0){                                                                      // bản thể đứng yên, phân thân lao tới nhập vào
-        r = Math.min(1, (now - o.rT) / o.d0); e = r * r;
-        cx = o.lcx + (o.lx - o.lcx) * e; cy = o.lcy + (o.ly - o.lcy) * e; cq = o.lcq;
-        cl.ang += shortest(Math.atan2(o.ly - o.lcy, o.lx - o.lcx) * 180 / Math.PI + 90 - cl.ang) * .25; cA = cl.ang;
-        cl.el.setAttribute('width', size); cl.el.setAttribute('height', size);
-        cl.el.style.transform = 'translate(' + (cx - size / 2).toFixed(1) + 'px,' + (cy - size / 2).toFixed(1) + 'px) rotate(' + cA.toFixed(1) + 'deg)';
-        if (r >= 1){ o.merged = true; o.rs = 1; o.rT = now; killTrail(o.ctr); cq = 0; sparks(px, py, 18, size * .7); ring(px, py, size * 1.9); }
+      var px = o.lx, py = o.ly, size = o.lsz, mo = 1, r, e;
+      if (o.rs === 0){                                                                      // bản thể đứng yên, các phân thân lao tới nhập vào
+        var pend = 0;
+        for (j = 0; j < o.cls.length; j++){
+          cl = o.cls[j]; if (!cl.Q || cl.merged) continue;
+          r = Math.min(1, (now - o.rT) / cl.d0); e = r * r;
+          var ccx = cl.lcx + (o.lx - cl.lcx) * e, ccy = cl.lcy + (o.ly - cl.lcy) * e;
+          cl.ang += shortest(Math.atan2(o.ly - cl.lcy, o.lx - cl.lcx) * 180 / Math.PI + 90 - cl.ang) * .25;
+          cl.el.setAttribute('width', size); cl.el.setAttribute('height', size);
+          cl.el.style.transform = 'translate(' + (ccx - size / 2).toFixed(1) + 'px,' + (ccy - size / 2).toFixed(1) + 'px) rotate(' + cl.ang.toFixed(1) + 'deg)';
+          if (r >= 1){ cl.merged = true; cl.el.style.opacity = 0; killTrail(cl.ctr); sparks(px, py, 12, size * .7); ring(px, py, size * 1.5); }
+          else { cl.el.style.opacity = cl.lcq; pend++; pushTrail(cl.ctr, ccx - Math.sin(cl.ang * Math.PI / 180) * size * .3, ccy + Math.cos(cl.ang * Math.PI / 180) * size * .3, size * .05, cl.lcq, now); }
+        }
+        if (!pend){ o.merged = true; o.rs = 1; o.rT = now; }
       }
       if (o.rs === 1){                                                                      // đã hợp thể: bay liền một mạch vào logo theo đường chéo của riêng nó (hai kiếm cắt nhau thành chữ X)
+        o.cls.forEach(function(k){ k.el.style.opacity = 0; });
         var rel = { x: o.Wp.x - sw.c0.x, y: o.Wp.y - sw.c0.y }, ln = Math.hypot(rel.x, rel.y) || 1, wx = rel.x / ln, wy = rel.y / ln;
         if (o.sx === undefined){ o.sx = o.lx; o.sy = o.ly; o.v = 900; o.d1 = Math.max(1, Math.hypot(o.lx - c.x, o.ly - c.y)); }
         var qx = o.sx - c.x, qy = o.sy - c.y, so = qx * wx + qy * wy, lat = Math.hypot(qx - wx * so, qy - wy * so), tx, ty;
@@ -1474,13 +1497,11 @@ $('#importFile').onchange = e => {
         px = o.sx; py = o.sy;
         size = c.s + (o.lsz + (sw.F - o.lsz) * smooth(e) - c.s) * smooth(dc / (sw.F * 1.2));
         var hr = Math.max(c.s * .2, sp * 1.2); mo = smooth((dc - hr) / (c.s * .35));   // mờ hẳn đúng lúc chạm logo
-        if (dc < hr){ o.rDone = true; o.el.remove(); cl.el.remove(); reveal(i); killTrail(o.tr); killTrail(o.ctr); sparks(c.x, c.y, 16, c.s * 1.1); ring(c.x, c.y, c.s * 2.2); cur.classList.remove('flash'); void cur.getBoundingClientRect(); cur.classList.add('flash'); }
+        if (dc < hr){ o.rDone = true; o.el.remove(); dropClones(o); reveal(i); killTrail(o.tr); sparks(c.x, c.y, 16, c.s * 1.1); ring(c.x, c.y, c.s * 2.2); cur.classList.remove('flash'); void cur.getBoundingClientRect(); cur.classList.add('flash'); }
       }
       o.el.style.opacity = mo; o.el.setAttribute('width', size); o.el.setAttribute('height', size);
       o.el.style.transform = 'translate(' + (px - size / 2).toFixed(1) + 'px,' + (py - size / 2).toFixed(1) + 'px) rotate(' + o.ang.toFixed(1) + 'deg)';
-      cl.el.style.opacity = cq;
       pushTrail(o.tr, px - Math.sin(o.ang * Math.PI / 180) * size * .3, py + Math.cos(o.ang * Math.PI / 180) * size * .3, size * .05, mo, now);
-      if (cq > .004) pushTrail(o.ctr, cx - Math.sin(cA * Math.PI / 180) * size * .3, cy + Math.cos(cA * Math.PI / 180) * size * .3, size * .05, cq, now);
     }
     setSpin(cur, sw.spin + (Math.round(sw.spin / 360) * 360 - sw.spin) * (es / 2));
     drawTrails(now);
@@ -1608,14 +1629,19 @@ $('#importFile').onchange = e => {
       s.appendChild(u); layer.appendChild(s);
       var ra = BASE[i] * Math.PI / 180, Wi = { x: c.x - Math.sin(ra) * HL, y: c.y + sy * Math.cos(ra) * HL };   // chỗ chờ: kiếm 45° đứng bên trái, kiếm -45° đứng bên phải
       var o = { el: s, use: u, path: buildPath(c, W, H, F, (BASE[i] - 90) * Math.PI / 180, { target: Wi, goal: GL, q: { q0: (QR + 2 * i) % 4, dir: QD } }), ang: BASE[i],   // mũi kiếm hướng lên: góc bay = góc kiếm - 90°
-                qc: { q0: (QR + 2 * i + 1) % 4, dir: QD }, tLeft: null, spawned: false, merged: false, Q: null, fl: -1e9, side: i ? -1 : 1 };
-      var cs = document.createElementNS(NS, 'svg'); cs.setAttribute('viewBox', '0 0 512 512');   // phân thân: ẩn cho tới khi kiếm rời vòng tròn
-      var cu = document.createElementNS(NS, 'use'); cu.setAttribute('href', '#lg-sword');
-      cs.appendChild(cu); cs.style.opacity = 0;
-      cs.style.filter = 'hue-rotate(38deg) drop-shadow(0 0 6px rgba(167,139,250,.9))';
-      layer.appendChild(cs);
-      o.cl = { el: cs, use: cu, ang: BASE[i] };
-      o.tr = newTrail(34, 211, 238); o.ctr = newTrail(167, 139, 250);
+                tLeft: null, spawned: false, merged: false, hasQ: false, fl: -1e9, side: i ? -1 : 1 };
+      o.cls = [];                                                                        // các phân thân: ẩn cho tới khi kiếm rời vòng tròn
+      for (var j = 0; j < CLONES; j++){
+        var cs = document.createElementNS(NS, 'svg'); cs.setAttribute('viewBox', '0 0 512 512');
+        var cu = document.createElementNS(NS, 'use'); cu.setAttribute('href', '#lg-sword');
+        cs.appendChild(cu); cs.style.opacity = 0;
+        cs.style.filter = CSTYLE[j].f;
+        layer.appendChild(cs);
+        o.cls.push({ el: cs, use: cu, ang: BASE[i], Q: null, merged: false, lcx: 0, lcy: 0, lcq: 0,
+                     qc: { q0: (QR + 2 * i + [1, 3, 2][j]) % 4, dir: j % 2 ? -QD : QD },     // mỗi phân thân nhắm một góc phần tư khác nhau
+                     ctr: newTrail(CSTYLE[j].rgb[0], CSTYLE[j].rgb[1], CSTYLE[j].rgb[2]) });
+      }
+      o.tr = newTrail(34, 211, 238);
       o.phase = 0; o.sW = o.path.total; o.Wp = Wi;   // Wp: vị trí chờ bên cạnh logo
       sw.push(o);
     }
@@ -1631,7 +1657,7 @@ $('#importFile').onchange = e => {
     var c = centre(cur), logoSw = cur.querySelectorAll('.lg-sw');
     logoSw[0].style.visibility = logoSw[1].style.visibility = '';
     setSpin(cur, 0);
-    sw.forEach(function(o){ o.el.remove(); o.cl.el.remove(); killTrail(o.tr); killTrail(o.ctr); }); sw = [];
+    sw.forEach(function(o){ o.el.remove(); dropClones(o); killTrail(o.tr); }); sw = [];
     cur.classList.remove('flash'); void cur.getBoundingClientRect(); // từng kiếm đã hiện và tạo tia lửa riêng lúc chạm logo
     cur = null; nextAt = now + REST_MS;
   }
@@ -1652,11 +1678,11 @@ $('#importFile').onchange = e => {
     var kt = 1 - Math.exp(-dt / 1000 * (4 + 18 * smooth(ft / .3)));
     var left = 0;
     for (var i = 0; i < 2; i++){
-      var o = sw[i], P = o.path, cl = o.cl;
+      var o = sw[i], P = o.path, cl, jj;
       if (o.phase === 4) continue;
       left++;
       /* Các giai đoạn của mỗi bản thể: 0 bay · 1 đứng chờ trước logo · 2 lùi lấy đà · 3 đâm vào logo · 4 xong */
-      if (o.phase === 0 && t >= 1){ o.phase = 1; o.tw = now; o.fl = now; o.landed = true; if (!o.Q){ o.spawned = true; o.merged = true; o.mergeAt = now; } }
+      if (o.phase === 0 && t >= 1){ o.phase = 1; o.tw = now; o.fl = now; o.landed = true; if (!o.hasQ){ o.spawned = true; o.merged = true; o.mergeAt = now; o.cls.forEach(function(k){ k.merged = true; }); } }
       if (o.phase === 1 && o.merged && now >= o.mergeAt + 160){ o.phase = 2; o.tp = now; }   // phân thân đã nhập vào: chuẩn bị đâm
       if (o.phase === 2 && now - o.tp >= WIND_MS){ o.phase = 3; o.tc = now; }
       var rel = { x: o.Wp.x - sw.c0.x, y: o.Wp.y - sw.c0.y };   // vị trí chờ so với tâm logo
@@ -1676,14 +1702,14 @@ $('#importFile').onchange = e => {
           dist = (len + F * PULL) * (1 - tt * tt * tt);                      // tăng tốc dồn dập rồi đâm thẳng vào tâm
           size = c.s + (F - c.s) * (1 - smooth((tt - .5) / .5));
           if (tt >= 1){                                                    // trúng đích: tia lửa + logo giật
-            o.phase = 4; o.el.remove(); cl.el.remove(); killTrail(o.tr); killTrail(o.ctr); reveal(i);
+            o.phase = 4; o.el.remove(); dropClones(o); killTrail(o.tr); reveal(i);
             sparks(c.x, c.y, 16, c.s * 1.1); ring(c.x, c.y, c.s * 2.2);
             cur.classList.remove('flash'); void cur.getBoundingClientRect(); cur.classList.add('flash');
             continue;
           }
         }
         px = c.x - ux * dist; py = c.y - uy * dist;
-        if (o.merged && o.kx !== undefined){ var kk = Math.max(0, 1 - (now - o.mergeAt) / 160); kk *= kk; px += o.kx * F * .12 * kk; py += o.ky * F * .12 * kk; }   // giật theo hướng phân thân lao vào
+        for (jj = 0; jj < o.cls.length; jj++){ cl = o.cls[jj]; if (cl.merged && cl.kx !== undefined){ var kk = Math.max(0, 1 - (now - cl.mergeAt) / 160); kk *= kk; px += cl.kx * F * .12 * kk; py += cl.ky * F * .12 * kk; } }   // giật theo hướng phân thân lao vào
       }
       o.ang += shortest(target - o.ang) * kt;
       if (o.landed){ o.landed = false; sparks(px, py, 8, size * .5); ring(px, py, size * .9); }   // dừng khựng tại chỗ chờ: lóe sáng
@@ -1691,34 +1717,50 @@ $('#importFile').onchange = e => {
       var tf = 'translate(256 256) scale(' + sx.toFixed(3) + ' 1) translate(-256 -256)';
       var mo = o.phase === 3 ? 1 - smooth((tt - .6) / .4) : 1;     // chạm tới tâm thì biến mất vào logo
 
-      /* Phân thân: rời vòng tròn được SPLIT_DELAY ms thì tách 1 bản, bay đường riêng ngẫu nhiên tới chỗ bản thể đang chờ */
+      /* Phân thân: rời vòng tròn được SPLIT_DELAY ms thì tách CLONES bản, mỗi bản bay đường riêng ngẫu nhiên tới chỗ bản thể đang chờ */
       if (o.phase === 0 && o.tLeft === null && s >= c.s * .42) o.tLeft = now;
       if (o.phase === 0 && !o.spawned && o.tLeft !== null && now - o.tLeft >= SPLIT_DELAY){
         o.spawned = true;
         var seg = o.sW - s;
         if (seg > 260){
           var ha = P.at(s - 36), hb = P.at(s + 36), hd = Math.atan2(hb.y - ha.y, hb.x - ha.x);
-          o.Q = buildPath(sw.c0, innerWidth, innerHeight, F, hd + o.side * (.55 + Math.random() * .6),
-                          { start: P.at(s), target: o.Wp, lo: seg * .85, hi: seg, hk: 2.2, q: o.qc });
-          o.born = now; o.tA = t0 + dur + WAIT_MS + i * 150; cl.ang = o.ang;   // phân thân về tới chỗ chờ sau bản thể một nhịp
-          sparks(px, py, 8, size * .5); ring(px, py, size * .9);
-        } else { o.merged = true; o.mergeAt = now; }
+          for (jj = 0; jj < o.cls.length; jj++){
+            cl = o.cls[jj];
+            cl.Q = buildPath(sw.c0, innerWidth, innerHeight, F, hd + (jj % 2 ? -o.side : o.side) * (.55 + Math.random() * .6),
+                             { start: P.at(s), target: o.Wp, lo: seg * .85, hi: seg, hk: 2.2, q: cl.qc });
+            cl.born = now; cl.tA = t0 + dur + WAIT_MS + i * 150 + jj * CLONE_GAP; cl.ang = o.ang;   // phân thân về tới chỗ chờ sau bản thể một nhịp, lần lượt từng cái
+          }
+          o.hasQ = true;
+          sparks(px, py, 12, size * .5); ring(px, py, size * .9);
+        } else { o.merged = true; o.mergeAt = now; o.cls.forEach(function(k){ k.merged = true; }); }
       }
-      var cq = 0, cx = px, cy = py, cA = o.ang;
-      if (o.Q){
-        var qt = Math.min(1, (now - o.born) / (o.tA - o.born)), fade = 1;
-        if (!o.merged && now >= o.tA){                              // hợp thể: phân thân nhập vào bản thể
-          o.merged = true; o.fl = now; o.mergeAt = now; o.kx = Math.sin(cl.ang * Math.PI / 180); o.ky = -Math.cos(cl.ang * Math.PI / 180);   // phân thân đâm trúng: bản thể bị đẩy giật một nhịp
-          sparks(px, py, 18, size * .7); ring(px, py, size * 1.9);
+      if (o.hasQ){
+        var allIn = true;
+        for (jj = 0; jj < o.cls.length; jj++){
+          cl = o.cls[jj];
+          var qt = Math.min(1, (now - cl.born) / (cl.tA - cl.born)), fade = 1, cx = px, cy = py, cA = cl.ang, cq;
+          if (!cl.merged && now >= cl.tA){                              // hợp thể: phân thân nhập vào bản thể
+            cl.merged = true; cl.mergeAt = now; o.fl = now; cl.kx = Math.sin(cl.ang * Math.PI / 180); cl.ky = -Math.cos(cl.ang * Math.PI / 180);   // phân thân đâm trúng: bản thể bị đẩy giật một nhịp
+            sparks(px, py, 12, size * .6); ring(px, py, size * 1.5);
+          }
+          if (cl.merged) fade = 1 - smooth((now - cl.mergeAt) / 160);
+          else {
+            allIn = false;
+            var sq = cl.Q.total * progL(qt), qa = cl.Q.at(sq - 36), qb = cl.Q.at(sq + 36), cp = cl.Q.at(sq);
+            cl.ang += shortest(Math.atan2(qb.y - qa.y, qb.x - qa.x) * 180 / Math.PI + 90 - cl.ang) * kt;
+            cA = cl.ang;                                                         // mũi kiếm luôn chĩa theo hướng lao tới bản thể
+            cx = cp.x + ox; cy = cp.y + oy;
+          }
+          cq = smooth((now - cl.born) / 300) * fade;
+          cl.lcx = cx; cl.lcy = cy; cl.lcq = cq;
+          cl.use.setAttribute('transform', tf);
+          cl.el.style.opacity = cq;
+          if (cl.sz !== size){ cl.sz = size; cl.el.setAttribute('width', size); cl.el.setAttribute('height', size); }
+          cl.el.style.transform = 'translate(' + (cx - size / 2).toFixed(1) + 'px,' + (cy - size / 2).toFixed(1) + 'px) rotate(' + cA.toFixed(1) + 'deg)';
+          if (cq > .004) pushTrail(cl.ctr, cx - Math.sin(cA * Math.PI / 180) * size * .3, cy + Math.cos(cA * Math.PI / 180) * size * .3, size * (qt > .7 ? .09 : .05), cq, now);
+          else if (cl.merged && cl.ctr.live) killTrail(cl.ctr);
         }
-        if (o.merged) fade = 1 - smooth((now - o.fl) / 160);
-        else {
-          var sq = o.Q.total * progL(qt), qa = o.Q.at(sq - 36), qb = o.Q.at(sq + 36), cp = o.Q.at(sq);
-          cl.ang += shortest(Math.atan2(qb.y - qa.y, qb.x - qa.x) * 180 / Math.PI + 90 - cl.ang) * kt;
-          cA = cl.ang;                                                         // mũi kiếm luôn chĩa theo hướng lao tới bản thể
-          cx = cp.x + ox; cy = cp.y + oy;
-        }
-        cq = smooth((now - o.born) / 300) * fade;
+        if (allIn && !o.merged){ o.merged = true; o.mergeAt = Math.max.apply(null, o.cls.map(function(k){ return k.mergeAt || 0; })); }   // đủ cả phân thân thì bản thể mới được lấy đà
       }
 
       /* Quầng sáng của bản thể: lóe lúc hợp thể, nhấp nháy khi chờ, rực dần khi lấy đà và đâm */
@@ -1732,19 +1774,14 @@ $('#importFile').onchange = e => {
         ? 'drop-shadow(0 0 ' + (5 + 8 * g).toFixed(1) + 'px rgba(255,255,255,' + (.5 + .5 * g).toFixed(2) + '))'
         : ''; }
       o.use.setAttribute('transform', tf);
-      o.lx = px; o.ly = py; o.lsz = size; o.lcx = cx; o.lcy = cy; o.lcq = cq;
+      o.lx = px; o.ly = py; o.lsz = size;
       o.el.style.opacity = mo;
-      if (o.sz !== size){ o.sz = size; o.el.setAttribute('width', size); o.el.setAttribute('height', size); cl.el.setAttribute('width', size); cl.el.setAttribute('height', size); }
+      if (o.sz !== size){ o.sz = size; o.el.setAttribute('width', size); o.el.setAttribute('height', size); }
       o.el.style.transform = 'translate(' + (px - size / 2).toFixed(1) + 'px,' + (py - size / 2).toFixed(1) + 'px) rotate(' + o.ang.toFixed(1) + 'deg)';
-      cl.use.setAttribute('transform', tf);
-      cl.el.style.opacity = cq;
-      cl.el.style.transform = 'translate(' + (cx - size / 2).toFixed(1) + 'px,' + (cy - size / 2).toFixed(1) + 'px) rotate(' + cA.toFixed(1) + 'deg)';
 
       /* Vệt sáng: bám phía sau chuôi kiếm (cú đâm có vệt đậm hơn) */
       var dx = Math.sin(o.ang * Math.PI / 180), dy = -Math.cos(o.ang * Math.PI / 180);
       pushTrail(o.tr, px - dx * size * .3, py - dy * size * .3, size * (o.phase === 3 ? .12 : .05), mo, now);
-      if (cq > .004) pushTrail(o.ctr, cx - Math.sin(cA * Math.PI / 180) * size * .3, cy + Math.cos(cA * Math.PI / 180) * size * .3, size * (qt > .7 ? .09 : .05), cq, now);
-      else if (o.merged && o.ctr.live) killTrail(o.ctr);
     }
     if (!left){ end(now); drawTrails(now); return; }             // cả hai bản thể đã đâm xong
     drawTrails(now);
@@ -1754,7 +1791,7 @@ $('#importFile').onchange = e => {
     if (document.hidden){ hiddenAt = performance.now(); return; }
     if (!hiddenAt) return;
     var gap = performance.now() - hiddenAt; hiddenAt = 0;
-    t0 += gap; nextAt += gap; if (recall) recall += gap; sw.forEach(function(o){ ['tLeft', 'born', 'fl', 'tA', 'mergeAt', 'tw', 'tp', 'tc'].forEach(function(k){ if (o[k]) o[k] += gap; }); }); last = performance.now();
+    t0 += gap; nextAt += gap; if (recall) recall += gap; sw.forEach(function(o){ ['tLeft', 'fl', 'mergeAt', 'tw', 'tp', 'tc'].forEach(function(k){ if (o[k]) o[k] += gap; }); (o.cls || []).forEach(function(c){ ['born', 'tA', 'mergeAt'].forEach(function(k){ if (c[k]) c[k] += gap; }); }); }); last = performance.now();
   });
   requestAnimationFrame(function(n){ last = n; requestAnimationFrame(frame); });
 })();
