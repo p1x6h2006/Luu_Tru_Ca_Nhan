@@ -63,7 +63,7 @@ a{color:inherit}
 .file:hover::before,.lc:hover::before,.vid:hover::before,.pic:hover::before,.meter:hover::before,.tab:hover::before,.btn:hover::before{opacity:1}
 
 /* ---------- Đầu trang ---------- */
-.top{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 0}
+.top{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0 6px}
 .top .mini{font:800 20px/1 var(--font);letter-spacing:-0.02em;min-width:0;display:flex;align-items:center;gap:10px}
 .topbtns{display:flex;gap:8px}
 .btn{border:1px solid var(--rule);background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.02));border-radius:10px;padding:7px 15px;font-weight:500;text-decoration:none;display:inline-block;line-height:1.4;overflow:hidden;
@@ -94,7 +94,7 @@ a{color:inherit}
 .meter .head{font-weight:600;margin-bottom:6px;font-size:15px;color:#cfe3ff}
 
 /* ---------- Thẻ ngăn hồ sơ ---------- */
-.tabbar{position:sticky;top:0;z-index:20;background:rgba(6,11,24,.95);box-shadow:0 8px 18px -12px rgba(0,0,0,.8)}
+.tabbar{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,rgba(10,18,42,.93),rgba(10,18,42,.86))}
 .tabbar::after{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;background:linear-gradient(90deg,transparent,var(--cy),var(--vi),#f0abfc,transparent);background-size:200% 100%;opacity:.8}
 .tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;align-items:end}
 .tab{--tc:var(--c-files);--ti:var(--c-files-ink);border:0;border-top:7px solid var(--tc);border-radius:14px 14px 0 0;
@@ -266,8 +266,9 @@ html.mobile #swordFly{display:none!important}
 html.lite #fx,html.lite #swordFly{display:none!important}
 html.lite body::before{animation:none}
 html.lite *,html.lite *::before,html.lite *::after{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;filter:none!important;animation:none!important;transition:none!important;text-shadow:none!important}
-#liteBtn{position:fixed;left:10px;bottom:10px;z-index:30;opacity:.45;border:1px solid var(--rule);background:rgba(9,15,32,.9);color:var(--ink);border-radius:99px;padding:4px 11px;font:500 13px var(--font);cursor:pointer}
-#liteBtn:hover,#liteBtn[aria-pressed=true]{opacity:1}
+#sndBtn{bottom:46px!important}
+#liteBtn,#sndBtn{position:fixed;left:10px;bottom:10px;z-index:30;opacity:.45;border:1px solid var(--rule);background:rgba(9,15,32,.9);color:var(--ink);border-radius:99px;padding:4px 11px;font:500 13px var(--font);cursor:pointer}
+#liteBtn:hover,#liteBtn[aria-pressed=true],#sndBtn:hover,#sndBtn[aria-pressed=true]{opacity:1}
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation:none!important;transition:none!important}}
 
 /* Đang cuộn: tạm dừng hoạt ảnh nền và tắt làm mờ kính để cuộn mượt (kiếm vẫn bay) */
@@ -1323,7 +1324,7 @@ $('#importFile').onchange = e => {
   }, { passive:true });
 
   var c = document.getElementById('fx'); if (!c || !c.getContext) return;
-  var g = c.getContext('2d'), W = 0, H = 0, P = [], M = { x:-9999, y:-9999 }, LINK = 110, raf = 0, root = document.documentElement;
+  var g = c.getContext('2d'), W = 0, H = 0, P = [], M = { x:-9999, y:-9999 }, LINK = 110, CUR = 190, raf = 0, root = document.documentElement;
   function size(){
     var d = 1; W = innerWidth; H = innerHeight;   // nền hạt chỉ là nét mảnh mờ: không cần độ phân giải kép
     c.width = W * d; c.height = H * d; g.setTransform(d, 0, 0, d, 0, 0);
@@ -1342,6 +1343,16 @@ $('#importFile').onchange = e => {
       for (var j = i + 1; j < P.length; j++){
         var b = P[j], dx = a.x - b.x, dy = a.y - b.y, d = dx * dx + dy * dy;
         if (d < LINK * LINK){ g.strokeStyle = 'rgba(103,200,255,' + (0.20 * (1 - Math.sqrt(d) / LINK)) + ')'; g.lineWidth = 1; g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(b.x, b.y); g.stroke(); }
+      }
+      /* Con trỏ: nối dây tới các chấm ở gần và kéo nhẹ chúng về phía con trỏ */
+      if (M.x > -999){
+        var mx = M.x - a.x, my = M.y - a.y, md = mx * mx + my * my;
+        if (md < CUR * CUR){
+          var mr = Math.sqrt(md), u = 1 - mr / CUR;
+          g.strokeStyle = 'rgba(125,225,255,' + (0.7 * u).toFixed(3) + ')'; g.lineWidth = 1.2;
+          g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(M.x, M.y); g.stroke();
+          if (!reduce && mr > 40){ a.x += mx * .0035 * u; a.y += my * .0035 * u; }
+        }
       }
       g.fillStyle = 'rgba(165,233,245,.85)';
       g.beginPath(); g.arc(a.x, a.y, a.r, 0, 6.2832); g.fill();
@@ -1384,6 +1395,152 @@ $('#importFile').onchange = e => {
   var layer = document.getElementById('swordFly'); if (!layer) return;
   var logos = [].slice.call(document.querySelectorAll('svg.logo'));
   if (!logos.length) return;
+
+  /* Âm thanh kiếm: tổng hợp bằng Web Audio (không cần tệp âm thanh). Trình duyệt chỉ cho phát sau khi bạn bấm/chạm/gõ phím trên trang ít nhất một lần.
+     Có nút bật/tắt ở góc trái dưới, lựa chọn được nhớ lại. */
+  var SFX = (function(){
+    var ac = null, master = null, rev = null, nb = null, voices = [], on = true, R = document.documentElement;
+    try { on = localStorage.getItem('swordSound') !== '0'; } catch (e) {}
+    function ready(){ return ac && ac.state === 'running' && on && !document.hidden && !R.classList.contains('noscroll') && !R.classList.contains('lite'); }
+    function makeIR(sec, decay){            // hồi âm kiểu sảnh lớn: nhiễu tắt dần, càng về sau càng tối
+      var sr = ac.sampleRate, n = sr * sec | 0, b = ac.createBuffer(2, n, sr), pre = sr * .012 | 0;
+      for (var c = 0; c < 2; c++){
+        var d = b.getChannelData(c), lp = 0;
+        for (var i = 0; i < n; i++){
+          var t = i / n; lp += ((Math.random() * 2 - 1) - lp) * (.6 - .5 * t);
+          d[i] = i < pre ? 0 : lp * Math.pow(1 - t, decay);
+        }
+      }
+      return b;
+    }
+    function unlock(){
+      if (!ac){
+        var C = window.AudioContext || window.webkitAudioContext; if (!C) return;
+        try { ac = new C(); } catch (e) { ac = null; return; }
+        master = ac.createGain(); master.gain.value = .6;
+        var cp = ac.createDynamicsCompressor(); cp.threshold.value = -18; cp.ratio.value = 4; cp.attack.value = .003; cp.release.value = .22;
+        master.connect(cp); cp.connect(ac.destination);
+        rev = ac.createConvolver(); rev.buffer = makeIR(2.4, 3); rev.connect(master);
+        var n = ac.sampleRate * 3; nb = ac.createBuffer(1, n, ac.sampleRate); var d = nb.getChannelData(0);
+        for (var i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+      }
+      if (ac.state === 'suspended') ac.resume();
+    }
+    ['pointerdown', 'keydown', 'touchstart'].forEach(function(ev){ addEventListener(ev, unlock, { capture: true, passive: true }); });
+    function pan(x){ return Math.max(-1, Math.min(1, x / Math.max(1, innerWidth) * 2 - 1)) * .8; }
+    /* Mỗi âm thanh có một "bus": vị trí trái/phải theo toạ độ kiếm + lượng hồi âm (wet) */
+    function bus(x, wet, vol){
+      var g = ac.createGain(), end = g; g.gain.value = vol == null ? 1 : vol;
+      if (ac.createStereoPanner){ var p = ac.createStereoPanner(); p.pan.value = pan(x); g.connect(p); end = p; g._p = p; }
+      end.connect(master);
+      if (wet > 0){ var w = ac.createGain(); w.gain.value = wet; end.connect(w); w.connect(rev); }
+      return g;
+    }
+    function osc(type, f0, f1, t, dur, vol, dst, atk){
+      atk = Math.min(atk || .006, dur * .5);
+      var o = ac.createOscillator(), g = ac.createGain();
+      o.type = type; o.frequency.setValueAtTime(f0, t); if (f1 !== f0) o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+      g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(vol, t + atk); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+      o.connect(g); g.connect(dst); o.start(t); o.stop(t + dur + .05);
+    }
+    function nz(ft, f0, f1, Q, t, dur, vol, dst, atk){      // nhiễu qua bộ lọc có quét tần số (xé gió, cọ kim loại, tia lửa)
+      var s = ac.createBufferSource(), fl = ac.createBiquadFilter(), g = ac.createGain();
+      s.buffer = nb; fl.type = ft; fl.Q.value = Q; fl.frequency.setValueAtTime(f0, t); if (f1 !== f0) fl.frequency.exponentialRampToValueAtTime(f1, t + dur);
+      atk = Math.min(atk || .004, dur * .6);
+      g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(vol, t + atk); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+      s.connect(fl); fl.connect(g); g.connect(dst); s.start(t, Math.random()); s.stop(t + dur + .05);
+    }
+    /* Lưỡi thép ngân: các hài âm của thanh kim loại (1 : 2,76 : 5,4 : 8,9 : 13,3) - cho tiếng "keng" trong và dài như kiếm thật */
+    var BAR = [[1, 1, 1], [2.76, .55, .55], [5.4, .3, .34], [8.93, .16, .2], [13.3, .08, .12]];
+    function ring(f, t, vol, len, dst){
+      BAR.forEach(function(q){ var fr = f * q[0]; if (fr < 13000) osc('sine', fr, fr * .997, t, len * q[2], vol * q[1], dst, .002); });
+      osc('sine', f * 1.006, f * 1.006, t, len * .85, vol * .3, dst, .002);          // lệch nhẹ => nhịp phách lung linh
+    }
+    function strike(t, vol, dst){                                                   // tiếng "tách" lúc kim loại chạm nhau
+      nz('highpass', 4500, 4500, .7, t, .035, vol * .7, dst, .001); nz('bandpass', 3200, 3200, 2, t, .06, vol * .4, dst, .001);
+    }
+    var PENTA = [1047, 1175, 1319, 1568, 1760], lastNote = -1;
+    function pickNote(){ lastNote = (lastNote + 1 + Math.floor(Math.random() * 4)) % 5; return PENTA[lastNote]; }   // ngũ cung, không lặp nốt liền nhau
+    function whoosh(x, vol){        // kiếm vụt ngang qua: gió tăng rồi giảm + tiếng huýt hạ xuống (Doppler)
+      var t = ac.currentTime, d = bus(x, .3); vol = vol || 1;
+      var s = ac.createBufferSource(), fl = ac.createBiquadFilter(), g = ac.createGain();
+      s.buffer = nb; fl.type = 'bandpass'; fl.Q.value = 3;
+      fl.frequency.setValueAtTime(450, t); fl.frequency.exponentialRampToValueAtTime(3400, t + .16); fl.frequency.exponentialRampToValueAtTime(900, t + .55);
+      g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(.55 * vol, t + .15); g.gain.exponentialRampToValueAtTime(.0001, t + .58);
+      s.connect(fl); fl.connect(g); g.connect(d); s.start(t, Math.random()); s.stop(t + .65);
+      osc('sine', 3600, 2300, t, .5, .045 * vol, d, .14); osc('sine', 7400, 4800, t, .4, .012 * vol, d, .14);
+      nz('highpass', 4500, 4500, .7, t, .4, .08 * vol, d, .14);
+    }
+    function voice(i){              // kiếm đang bay: gió + huýt + lưỡi kiếm rung ngân (chạy liên tục, đổi theo tốc độ)
+      if (voices[i]) return voices[i];
+      var d = bus(0, .22), s = ac.createBufferSource();
+      var bpA = ac.createBiquadFilter(), gA = ac.createGain(), bpB = ac.createBiquadFilter(), gB = ac.createGain();
+      var o1 = ac.createOscillator(), o2 = ac.createOscillator(), tg = ac.createGain(), lf = ac.createOscillator(), lg = ac.createGain();
+      s.buffer = nb; s.loop = true;
+      bpA.type = 'bandpass'; bpA.Q.value = 1; bpA.frequency.value = 500; gA.gain.value = 0;
+      bpB.type = 'bandpass'; bpB.Q.value = 8; bpB.frequency.value = 1800; gB.gain.value = 0;
+      o1.type = 'sine'; o2.type = 'triangle'; o1.frequency.value = 1400; o2.frequency.value = 1400 * 2.32; tg.gain.value = 0;
+      lf.frequency.value = 21; lg.gain.value = 30; lf.connect(lg); lg.connect(o1.frequency); lg.connect(o2.frequency);   // lưỡi kiếm rung rất nhanh
+      s.connect(bpA); bpA.connect(gA); gA.connect(d); s.connect(bpB); bpB.connect(gB); gB.connect(d);
+      o1.connect(tg); o2.connect(tg); tg.connect(d);
+      s.start(); o1.start(); o2.start(); lf.start();
+      return (voices[i] = { gA: gA, bpA: bpA, gB: gB, bpB: bpB, o1: o1, o2: o2, tg: tg, p: d._p || null, last: 0, lastW: -9 });
+    }
+    function mute(v, t, k){ v.gA.gain.setTargetAtTime(0, t, k); v.gB.gain.setTargetAtTime(0, t, k); v.tg.gain.setTargetAtTime(0, t, k); }
+    var api = {
+      get on(){ return on; },
+      set: function(v){ on = v; try { localStorage.setItem('swordSound', v ? '1' : '0'); } catch (e) {} if (v) unlock(); else api.off(); },
+      unlock: unlock,
+      off: function(){ if (!ac) return; voices.forEach(function(v){ if (v) mute(v, ac.currentTime, .04); }); },
+      fly: function(i, speed, x){
+        if (!ac) return;
+        if (!ready()){ if (voices[i]) mute(voices[i], ac.currentTime, .05); return; }
+        var v = voice(i), k = Math.min(1, speed / 1300), t = ac.currentTime, still = speed < 8;
+        v.gA.gain.setTargetAtTime(still ? 0 : .012 + .12 * k * k, t, .06);
+        v.bpA.frequency.setTargetAtTime(300 + 1500 * k, t, .06);
+        v.gB.gain.setTargetAtTime(still ? 0 : .55 * Math.pow(k, 1.4), t, .05);
+        v.bpB.frequency.setTargetAtTime(1300 + 3600 * k, t, .05);
+        var f = 1000 + 2200 * k;
+        v.o1.frequency.setTargetAtTime(f, t, .08); v.o2.frequency.setTargetAtTime(f * 2.32, t, .08);
+        v.tg.gain.setTargetAtTime(still ? 0 : .04 * Math.pow(k, 1.2), t, .06);
+        if (v.p) v.p.pan.setTargetAtTime(pan(x), t, .06);
+        var gap = t - v.lastW;                            // "vút" mỗi khi tăng tốc, và thỉnh thoảng khi lướt nhanh
+        if (gap > .55 && ((speed > 650 && v.last < 420) || (speed > 520 && gap > 1.6))){ v.lastW = t; whoosh(x, .6 + .5 * k); }
+        v.last = speed;
+      },
+      shing: function(x){               // tuốt kiếm: tiếng cọ thép "xoẹt-tranh" vút cao rồi ngân
+        if (!ready()) return; var t = ac.currentTime, d = bus(x, .45);
+        nz('bandpass', 2200, 8200, 5, t, .45, .5, d, .03); nz('highpass', 5000, 5000, .7, t, .4, .12, d, .02);
+        osc('sine', 3100, 5400, t, .35, .035, d, .02); ring(2349, t + .26, .05, 1.1, d); strike(t + .27, .5, d);
+        whoosh(x, .9);
+      },
+      ping: function(x){                // phân thân hiện ra: chuỗi chuông ngọc lướt lên + gió tụ lại
+        if (!ready()) return; var t = ac.currentTime, d = bus(x, .6), f = pickNote();
+        nz('bandpass', 1200, 7000, 2.5, t, .26, .12, d, .2);
+        [1, 1.5, 2].forEach(function(r, n){ ring(f * r, t + .04 + n * .055, .075, .9, d); });
+        osc('sine', 2600, 7200, t, .3, .02, d, .05);
+      },
+      clink: function(x, vol){          // hợp thể / va chạm: "keng keng" hai nhịp, kim loại nặng, ngân trong sảnh
+        if (!ready()) return; var t = ac.currentTime, d = bus(x, .45), f = pickNote(); vol = vol || 1;
+        strike(t, vol, d); ring(f, t, .16 * vol, 1.5, d);
+        strike(t + .1, .6 * vol, d); ring(f, t + .1, .11 * vol, 1.2, d);
+        osc('sine', 220, 110, t, .2, .16 * vol, d, .003);
+        nz('bandpass', 7000, 9500, 6, t, .8, .03 * vol, d, .01);
+      },
+      hit: function(x){                 // cú đâm vào logo: nổ trầm + va chạm thép + dư âm dài
+        if (!ready()) return; var t = ac.currentTime, d = bus(x, .6);
+        api.clink(x, 1.4);
+        osc('sine', 150, 38, t, .6, .55, d, .003); nz('lowpass', 900, 200, .7, t, .4, .4, d, .002); nz('bandpass', 1800, 600, .8, t, .2, .25, d, .001);
+      }
+    };
+    return api;
+  })();
+  (function(){                                          // nút bật/tắt tiếng
+    var b = document.createElement('button'); b.id = 'sndBtn'; b.type = 'button';
+    function paint(){ b.textContent = SFX.on ? '🔊 Tiếng kiếm: bật' : '🔇 Tiếng kiếm: tắt'; b.setAttribute('aria-pressed', SFX.on); }
+    b.onclick = function(){ SFX.set(!SFX.on); paint(); };
+    paint(); document.body.appendChild(b);
+  })();
 
   /* Vệt sáng: canvas nằm dưới các thanh kiếm, vẽ đường mờ dần theo vị trí kiếm vừa đi qua (cộng sáng 'lighter'). */
   var cv = document.createElement('canvas'); layer.insertBefore(cv, layer.firstChild);
@@ -1475,7 +1632,7 @@ $('#importFile').onchange = e => {
           cl.ang += shortest(Math.atan2(o.ly - cl.lcy, o.lx - cl.lcx) * 180 / Math.PI + 90 - cl.ang) * .25;
           cl.el.setAttribute('width', size); cl.el.setAttribute('height', size);
           cl.el.style.transform = 'translate(' + (ccx - size / 2).toFixed(1) + 'px,' + (ccy - size / 2).toFixed(1) + 'px) rotate(' + cl.ang.toFixed(1) + 'deg)';
-          if (r >= 1){ cl.merged = true; cl.el.style.opacity = 0; killTrail(cl.ctr); sparks(px, py, 12, size * .7); ring(px, py, size * 1.5); }
+          if (r >= 1){ cl.merged = true; cl.el.style.opacity = 0; killTrail(cl.ctr); sparks(px, py, 12, size * .7); ring(px, py, size * 1.5); SFX.clink(px, .8); }
           else { cl.el.style.opacity = cl.lcq; pend++; pushTrail(cl.ctr, ccx - Math.sin(cl.ang * Math.PI / 180) * size * .3, ccy + Math.cos(cl.ang * Math.PI / 180) * size * .3, size * .05, cl.lcq, now); }
         }
         if (!pend){ o.merged = true; o.rs = 1; o.rT = now; }
@@ -1500,11 +1657,12 @@ $('#importFile').onchange = e => {
         px = o.sx; py = o.sy;
         size = c.s + (o.lsz + (sw.F - o.lsz) * smooth(e) - c.s) * smooth(dc / (sw.F * 1.2));
         var hr = Math.max(c.s * .2, sp * 1.2); mo = smooth((dc - hr) / (c.s * .35));   // mờ hẳn đúng lúc chạm logo
-        if (dc < hr){ o.rDone = true; o.el.remove(); dropClones(o); reveal(i); killTrail(o.tr); sparks(c.x, c.y, 16, c.s * 1.1); ring(c.x, c.y, c.s * 2.2); cur.classList.remove('flash'); void cur.getBoundingClientRect(); cur.classList.add('flash'); }
+        if (dc < hr){ o.rDone = true; o.el.remove(); dropClones(o); reveal(i); killTrail(o.tr); SFX.hit(c.x); SFX.fly(i, 0, c.x); sparks(c.x, c.y, 16, c.s * 1.1); ring(c.x, c.y, c.s * 2.2); cur.classList.remove('flash'); void cur.getBoundingClientRect(); cur.classList.add('flash'); }
       }
       o.el.style.opacity = mo; o.el.setAttribute('width', size); o.el.setAttribute('height', size);
       o.el.style.transform = 'translate(' + (px - size / 2).toFixed(1) + 'px,' + (py - size / 2).toFixed(1) + 'px) rotate(' + o.ang.toFixed(1) + 'deg)';
       pushTrail(o.tr, px - Math.sin(o.ang * Math.PI / 180) * size * .3, py + Math.cos(o.ang * Math.PI / 180) * size * .3, size * .05, mo, now);
+      SFX.fly(i, o.px0 === undefined ? 0 : Math.hypot(px - o.px0, py - o.py0) / Math.max(dt, 1) * 1000, px); o.px0 = px; o.py0 = py;
     }
     setSpin(cur, sw.spin + (Math.round(sw.spin / 360) * 360 - sw.spin) * (es / 2));
     drawTrails(now);
@@ -1622,7 +1780,7 @@ $('#importFile').onchange = e => {
     cur = pickLogo(); t0 = now; sw = [];
     var c = centre(cur), W = document.documentElement.clientWidth || innerWidth, F = Math.max(96, c.s);
     var H = Math.max(innerHeight, document.documentElement.scrollHeight, document.body.scrollHeight); sw.PH = H;   // H: chiều cao cả trang (kể cả phần phải cuộn); nửa trên cho kiếm 1 và 3 phân thân, nửa dưới cho kiếm 2 và 3 phân thân
-    var logoSw = cur.querySelectorAll('.lg-sw');
+    var logoSw = cur.querySelectorAll('.lg-sw'); SFX.shing(c.x);
     var QD = Math.random() < .5 ? 1 : -1, QR = Math.floor(Math.random() * 4), GL = (3.2 + Math.random() * 2.5) * (W + H / 2);
     var HL = F * HOLD, sy = (c.y + HL * .72 > H - F * .4) ? -1 : 1;   // sát đáy màn hình thì đứng chờ phía trên logo thay vì phía dưới
     for (var i = 0; i < 2; i++){
@@ -1664,12 +1822,12 @@ $('#importFile').onchange = e => {
     setSpin(cur, 0);
     sw.forEach(function(o){ o.el.remove(); dropClones(o); killTrail(o.tr); }); sw = [];
     cur.classList.remove('flash'); void cur.getBoundingClientRect(); // từng kiếm đã hiện và tạo tia lửa riêng lúc chạm logo
-    cur = null; nextAt = now + REST_MS;
+    SFX.off(); cur = null; nextAt = now + REST_MS;
   }
   function frame(now){
     requestAnimationFrame(frame);
     var dt = now - last; last = now;
-    if (document.documentElement.classList.contains('lite')) return;
+    if (document.documentElement.classList.contains('lite')){ SFX.off(); return; }
     if (dt > 100) dt = 100;                                      // máy giật lag thì không để góc xoay bị nhảy
     if (!cur){ if (now < nextAt || (!window.__swAlways && now - lastAct < IDLE_MS)){ drawTrails(now); return; } begin(now); recall = 0; }   // chỉ bay khi đã không thao tác đủ IDLE_MS
     if (!window.__swAlways && !recall && lastAct > t0) recall = now;                   // vừa có thao tác: gọi kiếm về
@@ -1707,7 +1865,7 @@ $('#importFile').onchange = e => {
           dist = (len + F * PULL) * (1 - tt * tt * tt);                      // tăng tốc dồn dập rồi đâm thẳng vào tâm
           size = c.s + (F - c.s) * (1 - smooth((tt - .5) / .5));
           if (tt >= 1){                                                    // trúng đích: tia lửa + logo giật
-            o.phase = 4; o.el.remove(); dropClones(o); killTrail(o.tr); reveal(i);
+            o.phase = 4; o.el.remove(); dropClones(o); killTrail(o.tr); reveal(i); SFX.hit(c.x); SFX.fly(i, 0, c.x);
             sparks(c.x, c.y, 16, c.s * 1.1); ring(c.x, c.y, c.s * 2.2);
             cur.classList.remove('flash'); void cur.getBoundingClientRect(); cur.classList.add('flash');
             continue;
@@ -1717,7 +1875,7 @@ $('#importFile').onchange = e => {
         for (jj = 0; jj < o.cls.length; jj++){ cl = o.cls[jj]; if (cl.merged && cl.kx !== undefined){ var kk = Math.max(0, 1 - (now - cl.mergeAt) / 160); kk *= kk; px += cl.kx * F * .12 * kk; py += cl.ky * F * .12 * kk; } }   // giật theo hướng phân thân lao vào
       }
       o.ang += shortest(target - o.ang) * kt;
-      if (o.landed){ o.landed = false; sparks(px, py, 8, size * .5); ring(px, py, size * .9); }   // dừng khựng tại chỗ chờ: lóe sáng
+      if (o.landed){ o.landed = false; sparks(px, py, 8, size * .5); ring(px, py, size * .9); SFX.clink(px, .5); }   // dừng khựng tại chỗ chờ: lóe sáng
       var sx = 1 - (1 - THICK) * smooth(ft / .12);                // kiếm thon lại còn THICK (68%) bề ngang khi bay; tăng THICK để kiếm dày hơn
       var tf = 'translate(256 256) scale(' + sx.toFixed(3) + ' 1) translate(-256 -256)';
       var mo = o.phase === 3 ? 1 - smooth((tt - .6) / .4) : 1;     // chạm tới tâm thì biến mất vào logo
@@ -1734,7 +1892,7 @@ $('#importFile').onchange = e => {
             var ha = P.at(s - 36), hb = P.at(s + 36), hd = Math.atan2(hb.y - ha.y, hb.x - ha.x);
             cl.Q = buildPath(sw.c0, innerWidth, sw.PH, F, hd + (jj % 2 ? -o.side : o.side) * (.55 + Math.random() * .6),
                              { start: P.at(s), target: o.Wp, lo: seg * .85, hi: seg, hk: 2.2, zone: o.zone, q: cl.qc });
-            cl.born = now; cl.tA = t0 + dur + WAIT_MS + i * 150 + jj * CLONE_GAP; cl.ang = o.ang;
+            cl.born = now; cl.tA = t0 + dur + WAIT_MS + i * 150 + jj * CLONE_GAP; cl.ang = o.ang; SFX.ping(px);
             sparks(px, py, 12, size * .5); ring(px, py, size * .9);
           } else { cl.merged = true; }
         }
@@ -1747,7 +1905,7 @@ $('#importFile').onchange = e => {
           var qt = Math.min(1, (now - cl.born) / (cl.tA - cl.born)), fade = 1, cx = px, cy = py, cA = cl.ang, cq;
           if (!cl.merged && now >= cl.tA){                              // hợp thể: phân thân nhập vào bản thể
             cl.merged = true; cl.mergeAt = now; o.fl = now; cl.kx = Math.sin(cl.ang * Math.PI / 180); cl.ky = -Math.cos(cl.ang * Math.PI / 180);   // phân thân đâm trúng: bản thể bị đẩy giật một nhịp
-            sparks(px, py, 12, size * .6); ring(px, py, size * 1.5);
+            sparks(px, py, 12, size * .6); ring(px, py, size * 1.5); SFX.clink(px, .9);
           }
           if (cl.merged) fade = 1 - smooth((now - cl.mergeAt) / 160);
           else {
@@ -1781,6 +1939,7 @@ $('#importFile').onchange = e => {
         : ''; }
       o.use.setAttribute('transform', tf);
       o.lx = px; o.ly = py; o.lsz = size;
+      SFX.fly(i, o.px0 === undefined ? 0 : Math.hypot(px - o.px0, py - o.py0) / Math.max(dt, 1) * 1000, px); o.px0 = px; o.py0 = py;
       o.el.style.opacity = mo;
       if (o.sz !== size){ o.sz = size; o.el.setAttribute('width', size); o.el.setAttribute('height', size); }
       o.el.style.transform = 'translate(' + (px - size / 2).toFixed(1) + 'px,' + (py - size / 2).toFixed(1) + 'px) rotate(' + o.ang.toFixed(1) + 'deg)';
@@ -1794,7 +1953,7 @@ $('#importFile').onchange = e => {
   }
   var hiddenAt = 0;                                              // tab bị ẩn thì tạm dừng hiệu ứng, không bị nhảy cóc khi quay lại
   document.addEventListener('visibilitychange', function(){
-    if (document.hidden){ hiddenAt = performance.now(); return; }
+    if (document.hidden){ hiddenAt = performance.now(); SFX.off(); return; }
     if (!hiddenAt) return;
     var gap = performance.now() - hiddenAt; hiddenAt = 0;
     t0 += gap; nextAt += gap; if (recall) recall += gap; sw.forEach(function(o){ ['tLeft', 'fl', 'mergeAt', 'tw', 'tp', 'tc'].forEach(function(k){ if (o[k]) o[k] += gap; }); (o.cls || []).forEach(function(c){ ['born', 'tA', 'mergeAt'].forEach(function(k){ if (c[k]) c[k] += gap; }); }); }); last = performance.now();
