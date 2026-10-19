@@ -509,11 +509,22 @@ function normalize(s){
   s.items = (Array.isArray(s.items) ? s.items : []).map(i => i.sec ? Object.assign({ id:uid() }, i) : Object.assign({ id:uid(), tags:[], note:'', date:TODAY }, i));
   return s;
 }
+async function fromFile(){
+  try { const r = await fetch('data.json', { cache:'no-store' }); if (r.ok){ const o = normalize(await r.json()); return o; } } catch (e) {}
+  return null;
+}
+const sameData = (a, b) => { try { const f = o => JSON.stringify(Object.assign({}, o, { images:undefined })); return f(a) === f(b); } catch (e) { return false; } };
 async function load(){
-  try { const raw = localStorage.getItem(LS); if (raw){ state = normalize(JSON.parse(raw)); source = 'local'; } } catch (e) {}
-  if (!state){
-    try { const r = await fetch('data.json', { cache:'no-store' }); if (r.ok){ state = normalize(await r.json()); source = 'file'; } } catch (e) {}
-  }
+  /* Ưu tiên data.json trong kho. Chỉ giữ bản trong trình duyệt khi đó là chỉnh sửa chưa được đưa lên kho (cờ DIRTY),
+     và tự quay về data.json ngay khi bản trên kho đã trùng với bản chỉnh sửa. */
+  let local = null, dirty = false;
+  try { const raw = localStorage.getItem(LS); if (raw) local = normalize(JSON.parse(raw)); dirty = localStorage.getItem(LS + '-dirty') === '1'; } catch (e) {}
+  const file = await fromFile();
+  if (file && (!local || !dirty || sameData(file, local))){
+    state = file; source = 'file';
+    try { localStorage.removeItem(LS); localStorage.removeItem(LS + '-dirty'); } catch (e) {}
+  } else if (local){ state = local; source = 'local'; }
+  else if (file){ state = file; source = 'file'; }
   if (!state){ state = normalize(JSON.parse(JSON.stringify(DEFAULT))); source = 'default'; }
   ingestImages();
   if (source === 'local'){ try { (await idbLoadAll()).forEach((v, k) => { if (!imgRaw.has(k)) imgRaw.set(k, v); }); buildPublicUrls(); } catch (e) {} }
@@ -618,7 +629,7 @@ async function submitVideo(f, fd, it, sec){
   $('#dlg').close(); save(); toast(sec ? 'Đã lưu video (đã mã hóa)' : 'Đã lưu video');
 }
 function save(){
-  try { localStorage.setItem(LS, JSON.stringify(state)); source = 'local'; }
+  try { localStorage.setItem(LS, JSON.stringify(state)); localStorage.setItem(LS + '-dirty', '1'); source = 'local'; }
   catch (e) { toast('Không lưu được trên trình duyệt này'); }
   if (imgDirty){ imgDirty = false; syncImgs(); }
   render();
@@ -830,7 +841,7 @@ $('#panel').addEventListener('click', e => {
   else if (act === 'chpw') changePassword();
   else if (act === 'export') exportData();
   else if (act === 'import') $('#importFile').click();
-  else if (act === 'reset'){ if (confirm('Bỏ mọi chỉnh sửa trên trình duyệt này và quay về dữ liệu gốc?')){ localStorage.removeItem(LS); lockNow(); resetImgs(); vidClear(); imgDirty = true; state = null; load().then(render); toast('Đã về dữ liệu gốc'); } }
+  else if (act === 'reset'){ if (confirm('Bỏ mọi chỉnh sửa trên trình duyệt này và quay về dữ liệu gốc?')){ localStorage.removeItem(LS); localStorage.removeItem(LS + '-dirty'); lockNow(); resetImgs(); vidClear(); imgDirty = true; state = null; load().then(render); toast('Đã về dữ liệu gốc'); } }
 });
 $('#editBtn').onclick = async () => {
   if (edit){ lockNow(); return; }
