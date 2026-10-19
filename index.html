@@ -261,6 +261,7 @@ footer{padding:0 0 36px;color:var(--muted);font-size:14px}
 @media (hover:none),(pointer:coarse){.file::before,.lc::before,.vid::before,.pic::before,.meter::before,.tab::before,.btn::before{display:none}}
 .file,.lc,.vid{content-visibility:auto;contain-intrinsic-size:auto 120px}
 html.noscroll #swordFly,html.noscroll #fx{visibility:hidden}
+html.mobile #swordFly{display:none!important}
 /* Chế độ nhẹ (tự bật khi máy giật, hoặc bấm nút ⚡ góc trái dưới) */
 html.lite #fx,html.lite #swordFly{display:none!important}
 html.lite body::before{animation:none}
@@ -291,6 +292,16 @@ html.scrolling body::before,html.scrolling .hero h1,html.scrolling .tabbar::afte
   filter:drop-shadow(0 0 6px rgba(34,211,238,.85))}
 #swordFly canvas{position:absolute;left:0;top:0;width:100%;height:100%}
 </style>
+<script>
+/* Cờ dùng chung: máy cảm ứng/điện thoại không chạy kiếm bay; chế độ "kiếm vẫn bay khi thao tác" (bật trong khung Chỉnh sửa). */
+(function(){
+  var mob = false;
+  try { mob = matchMedia('(hover:none) and (pointer:coarse)').matches || /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent); } catch (e) {}
+  window.__mob = mob;
+  try { window.__swAlways = localStorage.getItem('swordsAlways') === '1'; } catch (e) { window.__swAlways = false; }
+  if (mob) document.documentElement.classList.add('mobile');
+})();
+</script>
 </head>
 <body>
 <canvas id="fx" aria-hidden="true"></canvas>
@@ -657,6 +668,7 @@ function renderPanel(){
       ? 'Bạn đã chỉnh sửa trên trình duyệt này. Muốn mọi thiết bị đều thấy, bấm Xuất data.json rồi tải lên kho GitHub.'
       : 'Thêm hoặc sửa mục rồi bấm Xuất data.json để đưa lên kho GitHub.') + '</p>' +
       '<button class="btn sm" data-act="profile">Sửa hồ sơ</button>' +
+      (window.__mob ? '' : '<button class="btn sm" data-act="swordmode" aria-pressed="' + !!window.__swAlways + '" title="Bật: kiếm vẫn bay khi bạn cuộn, bấm, gõ. Tắt: kiếm chỉ bay khi để yên 5 giây.">Kiếm bay khi thao tác: ' + (window.__swAlways ? 'Bật' : 'Tắt') + '</button>') +
       '<button class="btn sm" data-act="chpw">Đổi mật khẩu</button>' +
       '<button class="btn sm" data-act="export">Xuất data.json</button>' +
       '<button class="btn sm" data-act="import">Nhập data.json</button>' +
@@ -809,6 +821,11 @@ $('#panel').addEventListener('click', e => {
   else if (act === 'lock'){ lockNow(); toast('Đã khóa'); }
   else if (act === 'lb') openLightbox(+b.dataset.i);
   else if (act === 'play') openVideo(id);
+  else if (act === 'swordmode'){
+    window.__swAlways = !window.__swAlways;
+    try { localStorage.setItem('swordsAlways', window.__swAlways ? '1' : '0'); } catch (e) {}
+    toast(window.__swAlways ? 'Kiếm sẽ vẫn bay khi bạn thao tác' : 'Kiếm chỉ bay khi để yên một lúc'); render();
+  }
   else if (act === 'profile') openProfile();
   else if (act === 'chpw') changePassword();
   else if (act === 'export') exportData();
@@ -1336,7 +1353,7 @@ $('#importFile').onchange = e => {
   var THRUST_MS = 200;    // thời gian cú đâm vào logo (ms): càng nhỏ càng dứt khoát
   var IDLE_MS   = 5000;  // không thao tác bao lâu (ms) thì kiếm mới bắt đầu bay
   var THICK     = .68;    // độ dày kiếm khi bay so với bản gốc (trước là 0.5; 1 = dày nguyên bản)
-  if (matchMedia('(prefers-reduced-motion:reduce)').matches) return;
+  if (matchMedia('(prefers-reduced-motion:reduce)').matches || window.__mob) return;   // điện thoại: tắt hẳn kiếm bay
   var layer = document.getElementById('swordFly'); if (!layer) return;
   var logos = [].slice.call(document.querySelectorAll('svg.logo'));
   if (!logos.length) return;
@@ -1612,8 +1629,8 @@ $('#importFile').onchange = e => {
     var dt = now - last; last = now;
     if (document.documentElement.classList.contains('lite')) return;
     if (dt > 100) dt = 100;                                      // máy giật lag thì không để góc xoay bị nhảy
-    if (!cur){ if (now < nextAt || now - lastAct < IDLE_MS){ drawTrails(now); return; } begin(now); recall = 0; }   // chỉ bay khi đã không thao tác đủ IDLE_MS
-    if (!recall && lastAct > t0) recall = now;                   // vừa có thao tác: gọi kiếm về
+    if (!cur){ if (now < nextAt || (!window.__swAlways && now - lastAct < IDLE_MS)){ drawTrails(now); return; } begin(now); recall = 0; }   // chỉ bay khi đã không thao tác đủ IDLE_MS
+    if (!window.__swAlways && !recall && lastAct > t0) recall = now;                   // vừa có thao tác: gọi kiếm về
     if (recall){ recallFrame(now, dt); return; }
     var t = (now - t0) / dur, ft = t > 1 ? 1 : t;                // ft: tiến độ giai đoạn bay (0 → 1)
     var c = centre(cur), F = sw.F;
