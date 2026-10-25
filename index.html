@@ -364,7 +364,7 @@ html.vbg #vbg{opacity:1;visibility:visible;transition:opacity .7s ease,visibilit
 #vbg video{position:absolute;left:0;top:0;width:100%;height:100%;object-fit:fill;background:transparent;display:block;max-width:none;z-index:0}
 #vbg video.front{z-index:1}
 #vbgVeil{position:absolute;inset:0;z-index:5;background:linear-gradient(180deg,rgba(236,227,205,calc(var(--vbg-veil) + .12)),rgba(236,227,205,var(--vbg-veil)) 45%,rgba(236,227,205,calc(var(--vbg-veil) + .06)))}
-#vsndBtn{position:fixed;left:10px;bottom:82px;z-index:30;opacity:.7;border:1px solid rgba(23,18,14,.5);background:rgba(244,237,220,.95);color:var(--ink);border-radius:99px;padding:4px 11px;font:500 14px var(--font);font-family:var(--disp,var(--font));cursor:pointer}
+#vsndBtn{position:fixed;left:10px;bottom:calc(8px + env(safe-area-inset-bottom,0px));z-index:30;opacity:.7;border:1px solid rgba(23,18,14,.5);background:rgba(244,237,220,.95);color:var(--ink);border-radius:99px;padding:4px 11px;font:500 14px var(--font);font-family:var(--disp,var(--font));cursor:pointer}
 @media(hover:hover){#vsndBtn:hover{opacity:1}}
 /* Chữ giới thiệu nằm thẳng trên video: thêm quầng sáng mờ cho dễ đọc (tự hết khi video kết thúc) */
 /* Trong lúc video chạy: làm mờ các khung giấy để thấy rõ video. Hết video trả lại như cũ. Muốn mờ hơn/đậm hơn: sửa các số .xx bên dưới. */
@@ -408,7 +408,7 @@ html textarea,html input:not([type=checkbox]):not([type=radio]):not([type=file])
   .chip:not([aria-pressed=true]):hover{background:rgba(23,18,14,.1)}
   .chip[aria-pressed=true]:hover{background:#2a221b}
   .seg button[aria-pressed=true]:hover{background:#2a221b}
-  .btn.on:not(:disabled):hover{background:#2c5646;border-color:#2c5646;color:#f8efd8}
+  .btn.on:not(:disabled):hover{background:var(--ink);border-color:var(--ink);color:#5fd39a}
   .tab[aria-selected=true]:hover{transform:none}
   .btn.sm:not(:disabled):hover{transform:translateY(-1px)}
 }
