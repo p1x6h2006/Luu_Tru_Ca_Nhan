@@ -81,8 +81,8 @@ a{color:inherit}
   transition:transform .25s cubic-bezier(.2,.9,.3,1.3),background .25s,color .25s,border-color .25s,box-shadow .25s}
 @media(hover:hover){.btn:not(:disabled):hover{transform:translateY(-2px);background:var(--ink);color:#f6ecd4;border-color:var(--ink);box-shadow:0 8px 18px -8px rgba(23,18,14,.7)}}
 .btn:active{transform:translateY(0) scale(.97)}
-.btn.pri{background:var(--acc);color:#fbf1da;border-color:var(--acc-d);font-weight:600;box-shadow:inset 0 0 0 2px rgba(251,241,218,.25)}
-@media(hover:hover){.btn.pri:not(:disabled):hover{background:var(--acc-d);border-color:var(--acc-d);box-shadow:0 8px 20px -8px rgba(143,29,20,.85),inset 0 0 0 2px rgba(251,241,218,.3)}}
+.btn.pri{background:var(--acc);color:var(--ink);border-color:var(--acc-d);font-weight:600;box-shadow:inset 0 0 0 2px rgba(251,241,218,.25)}
+@media(hover:hover){.btn.pri:not(:disabled):hover{background:var(--ink);color:#ff3b2f;border-color:var(--ink);box-shadow:0 8px 18px -8px rgba(23,18,14,.7),inset 0 0 0 2px rgba(255,59,47,.25)}}
 .btn.on{background:#3f7a64;color:#f8efd8;border-color:#2c5646}
 .btn.sm{padding:4px 11px;font-size:14px;border-radius:3px}
 @media(hover:hover){.btn.danger:not(:disabled):hover{background:var(--acc);border-color:var(--acc-d);color:#fbf1da}}
@@ -374,7 +374,7 @@ html.vbg .stickybar{background:rgba(244,237,220,.4)}
 html.vbg .meter{background:linear-gradient(160deg,rgba(255,252,243,.4),rgba(236,227,205,.3))}
 html.vbg .pic{background:rgba(248,241,222,.4)}
 html.vbg .search,html.vbg .field input,html.vbg .field textarea,html.vbg .field select{background:rgba(255,252,243,.5)}
-html.vbg .btn,html.vbg .chip,html.vbg .seg{background:rgba(255,251,240,.4)}
+html.vbg .btn:not(.pri):not(.on),html.vbg .chip:not([aria-pressed=true]),html.vbg .seg{background:rgba(255,251,240,.4)}
 html.vbg .panel,html.vbg .tabbar,html.vbg .meter,html.vbg .file,html.vbg .lc,html.vbg .vid{text-shadow:0 0 6px rgba(246,238,220,.95),0 0 2px rgba(246,238,220,.9)}
 html.vbg .panel h1,html.vbg .panel h2,html.vbg .panel h3{text-shadow:0 0 8px rgba(246,238,220,1),0 0 3px rgba(246,238,220,1)}
 html.vbg .tagline,html.vbg .bio,html.vbg footer{color:var(--ink);text-shadow:0 0 10px rgba(246,238,220,.95),0 0 3px rgba(246,238,220,.9)}
@@ -409,7 +409,6 @@ html textarea,html input:not([type=checkbox]):not([type=radio]):not([type=file])
   .chip[aria-pressed=true]:hover{background:#2a221b}
   .seg button[aria-pressed=true]:hover{background:#2a221b}
   .btn.on:not(:disabled):hover{background:#2c5646;border-color:#2c5646;color:#f8efd8}
-  #pwOk:not(:disabled):hover{background:var(--ink);color:#ff3b2f;border-color:var(--ink);box-shadow:0 8px 18px -8px rgba(23,18,14,.7),inset 0 0 0 2px rgba(255,59,47,.25)}
   .tab[aria-selected=true]:hover{transform:none}
   .btn.sm:not(:disabled):hover{transform:translateY(-1px)}
 }
