@@ -371,13 +371,16 @@ html.vbg #vbg{opacity:1;visibility:visible;transition:opacity .7s ease,visibilit
 html.vbg{--vbg-veil:.06;--panel:rgba(247,241,226,.34);--soft:rgba(255,251,240,.26)}
 html.vbg .tabbar{background:linear-gradient(180deg,rgba(236,227,205,.42),rgba(233,223,199,.36))}
 html.vbg .stickybar{background:rgba(244,237,220,.4)}
-html.vbg .meter{background:linear-gradient(160deg,rgba(255,252,243,.4),rgba(236,227,205,.3))}
+html.vbg .meter{background:linear-gradient(160deg,rgba(23,18,14,.58),rgba(23,18,14,.44))}
 html.vbg .pic{background:rgba(248,241,222,.4)}
 html.vbg .search,html.vbg .field input,html.vbg .field textarea,html.vbg .field select{background:rgba(255,252,243,.5)}
 html.vbg .btn:where(:not(.pri):not(.on)),html.vbg .chip:where(:not([aria-pressed=true])),html.vbg .seg{background:rgba(255,251,240,.4)}
 html.vbg .panel,html.vbg .tabbar,html.vbg .meter,html.vbg .file,html.vbg .lc,html.vbg .vid{text-shadow:0 0 6px rgba(246,238,220,.95),0 0 2px rgba(246,238,220,.9)}
 html.vbg .panel h1,html.vbg .panel h2,html.vbg .panel h3{text-shadow:0 0 8px rgba(246,238,220,1),0 0 3px rgba(246,238,220,1)}
 html.vbg .tagline,html.vbg .bio,html.vbg footer{color:var(--ink);text-shadow:0 0 10px rgba(246,238,220,.95),0 0 3px rgba(246,238,220,.9)}
+/* Chữ nằm trên video: màu kem + bóng tối cho dễ đọc (hết video tự trả lại màu mực) */
+html.vbg .hero h1,html.vbg .tagline,html.vbg .bio,html.vbg footer,html.vbg .meter,html.vbg .meter b,html.vbg .meter p,html.vbg .meter .head{color:#f6ecd4;text-shadow:0 1px 3px rgba(0,0,0,.85),0 0 12px rgba(0,0,0,.55)}
+html.vbg .meter p{color:rgba(246,236,212,.9)}
 
 /* ---------- Con trỏ chuột: bút thư pháp nhỏ (đầu bút là điểm trỏ). Ô nhập chữ giữ con trỏ gõ chữ. ---------- */
 :root{--cur-brush:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cpolygon points='14.09,15.09 26.59,2.59 29.41,5.41 16.91,17.91' fill='%234a2f18' stroke='%231b1109' stroke-width='.8' stroke-linejoin='round'/%3E%3Cline x1='16.2' y1='15.4' x2='27.4' y2='4.2' stroke='%23a8743f' stroke-width='.9' stroke-linecap='round' opacity='.8'/%3E%3Ccircle cx='28' cy='4' r='2.1' fill='%23b98a2c' stroke='%231b1109' stroke-width='.7'/%3E%3Cpolygon points='9.88,17.88 13.38,14.38 17.62,18.62 14.12,22.12' fill='%23b98a2c' stroke='%231b1109' stroke-width='.8' stroke-linejoin='round'/%3E%3Cpath d='M3 29 Q3.6 26 4.44 24.44 Q6 21.5 7.74 19.74 L9.88 17.88 L14.12 22.12 Q12.9 23.6 12.26 24.26 Q9.8 26.8 3 29Z' fill='%2317120e' stroke='%23000' stroke-width='.6' stroke-linejoin='round'/%3E%3Cpath d='M3 29 Q3.5 27 4.7 25.3 L7 27.6 Q5.2 28.6 3 29Z' fill='%233a3128'/%3E%3Cpath d='M7.5 21.5 Q6.2 23.6 5.8 25.2' stroke='%236c6258' stroke-width='.8' fill='none' stroke-linecap='round' opacity='.7'/%3E%3C/svg%3E") 3 29,auto;--cur-brush-red:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cpolygon points='14.09,15.09 26.59,2.59 29.41,5.41 16.91,17.91' fill='%234a2f18' stroke='%231b1109' stroke-width='.8' stroke-linejoin='round'/%3E%3Cline x1='16.2' y1='15.4' x2='27.4' y2='4.2' stroke='%23a8743f' stroke-width='.9' stroke-linecap='round' opacity='.8'/%3E%3Ccircle cx='28' cy='4' r='2.1' fill='%23b3261e' stroke='%231b1109' stroke-width='.7'/%3E%3Cpolygon points='9.88,17.88 13.38,14.38 17.62,18.62 14.12,22.12' fill='%23b3261e' stroke='%231b1109' stroke-width='.8' stroke-linejoin='round'/%3E%3Cpath d='M3 29 Q3.6 26 4.44 24.44 Q6 21.5 7.74 19.74 L9.88 17.88 L14.12 22.12 Q12.9 23.6 12.26 24.26 Q9.8 26.8 3 29Z' fill='%2317120e' stroke='%23000' stroke-width='.6' stroke-linejoin='round'/%3E%3Cpath d='M3 29 Q3.5 27 4.7 25.3 L7 27.6 Q5.2 28.6 3 29Z' fill='%23b3261e'/%3E%3Cpath d='M7.5 21.5 Q6.2 23.6 5.8 25.2' stroke='%236c6258' stroke-width='.8' fill='none' stroke-linecap='round' opacity='.7'/%3E%3C/svg%3E") 3 29,pointer}
@@ -792,7 +795,7 @@ function render(){
   $('#miniName').textContent = p.name || 'Kho cá nhân';
   $('#tagline').textContent = p.tagline || '';
   $('#bio').textContent = p.bio || '';
-  $('#plinks').innerHTML = (p.links || []).map((l, i) => (l.url || l.enc) ? '<button type="button" class="btn" data-link="' + i + '">' + esc(l.name || 'Liên kết') + '</button>' : '').join('');
+  $('#plinks').innerHTML = (p.links || []).map((l, i) => (l.url || l.enc) ? '<button type="button" class="btn pri" data-link="' + i + '">' + esc(l.name || 'Liên kết') + '</button>' : '').join('');
   Object.keys(TABS).forEach(k => $('#ct-' + k).textContent = typeOf(TABS[k].type).length);
   document.querySelectorAll('.tab').forEach(b => { b.setAttribute('aria-selected', b.dataset.tab === tab); b.tabIndex = b.dataset.tab === tab ? 0 : -1; });
   let bytes = new Blob([JSON.stringify(state)]).size; imgRaw.forEach(r => bytes += (r.d || r.ct || '').length);
